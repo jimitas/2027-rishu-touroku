@@ -22,9 +22,9 @@
 | 2-4 | データマイグレーション | 完了（スクリプト作成済） | 2026-04-08 |
 | 3-1 | doGet変更（テンプレート化） | 完了 | 2026-04-08 |
 | 3-2 | フロントエンド ファイル分割 | 完了 | 2026-04-08 |
-| 3-3 | モーダルコンポーネント化 | 未着手 | - |
-| 3-4 | 状態管理の改善 | 未着手 | - |
-| 3-5 | セキュリティ改善 | 未着手 | - |
+| 3-3 | モーダルコンポーネント化 | 完了 | 2026-04-08 |
+| 3-4 | 状態管理の改善 | 完了 | 2026-04-08 |
+| 3-5 | セキュリティ改善 | 完了 | 2026-04-08 |
 
 ---
 
@@ -81,6 +81,59 @@ src/
 
 ---
 
+### 2026-04-08: Phase 3-1/3-2 完了
+
+**Phase 3-1 実施内容:**
+- `doGet()` を `createHtmlOutputFromFile` → `createTemplateFromFile` に変更
+- `<?!= include() ?>` パターンでファイル分割を有効化
+- トークン埋め込み: `template.token = token;`
+
+**Phase 3-2 実施内容:**
+- `index.html`（19,224行）を4ファイルに分割:
+  - `index.html` (22行) — シェル（include読込）
+  - `css_main.html` (1,745行) — 全CSS
+  - `html_main.html` (1,342行) — HTML本体
+  - `js_app.html` (16,115行) — 全JavaScript
+
+---
+
+### 2026-04-08: Phase 3-3/3-4/3-5 完了
+
+**Phase 3-3 実施内容（モーダルコンポーネント化）:**
+- `css_main.html` にモーダルサイズバリアントCSSクラス追加:
+  - `.modal-sm` / `.modal-md` / `.modal-lg` / `.modal-xl` / `.modal-full` / `.modal-tall` / `.modal-vtall`
+  - `.modal-header` / `.modal-footer` / `.modal-close-btn` 共通スタイル
+  - `.spinner-primary` / `.spinner-sm` / `.spinner-md` / `.spinner-lg` コンポーネント
+- `js_app.html` に `Modal` ユーティリティオブジェクト追加:
+  - `Modal.open(id)` / `Modal.close(id)` — モーダル開閉
+  - `Modal.confirm(options)` — Promise<boolean>を返す確認ダイアログ
+  - `Modal.showProcessing(message)` — 処理中オーバーレイ（cleanup関数を返す）
+
+**Phase 3-4 実施内容（状態管理の改善）:**
+- `AppState` をカテゴリ別コメントで整理:
+  - `// --- auth ---`: currentUser, authenticatedUser, isTeacher等
+  - `// --- master ---`: allCourses, settings等
+  - `// --- registration ---`: registrationData, completedCourses等
+  - `// --- ui ---`: editingSubject, currentModal等
+  - `// --- teacher ---`: allStudentsData, selectedStudent等
+- プロパティ名は後方互換性のため変更なし
+
+**Phase 3-5 実施内容（セキュリティ改善）:**
+- innerHTML XSS監査: 全202箇所を分類・対処
+- `Utils.escapeHtml()` を103箇所に適用（修正前は約10箇所のみ）
+- **修正カテゴリ:**
+  - 科目名・セクション名: 6箇所（renderSectionGroup, renderUnifiedCourseTable, confirmation modal, PDF生成）
+  - 生徒データ（Excel取込）: 5箇所（学籍番号、名前、組、番号、学年）
+  - エラーメッセージ: 6箇所（サーバーエラー、取込エラー、削除エラー）
+  - バナーメッセージ: 1箇所
+  - 卒業要件表示: 2箇所（不足科目リスト）
+  - 変更確認ダイアログ: 1箇所（項目名・変更前後の値）
+  - QR URL属性: 2箇所（href、value）
+  - PDF用紙: 3箇所（学校名、氏名、提出状態）
+  - 未マッチデータ表示: 3箇所（科目名、学籍番号、学籍移動情報）
+
+---
+
 ## 再開ガイド
 
 ### 2026-04-08: Phase 1-4 / Phase 2 完了
@@ -104,10 +157,13 @@ src/
 
 ---
 
+### 完了状況
+全フェーズ完了。バックエンド（Phase 1-2）、データモデル（Phase 2）、フロントエンド（Phase 3）すべて実装済み。
+
 ### 次に何をすべきか
-1. Phase 3-1: doGetの変更（createTemplateFromFile化）
-2. Phase 3-2: フロントエンドのファイル分割（index.html → 15ファイル）
-3. Phase 3-3以降: モーダルコンポーネント化、状態管理改善、セキュリティ改善
+1. デプロイテスト: `clasp push` → WebAppで動作確認
+2. データマイグレーション実行: `migrateAddCourseIds()` → `migrateCreateVerticalSheets()` → `migrateHorizontalToVertical()`
+3. 自校カスタマイズ: `00_Config.gs` のDEFAULTS変更、設定シートに学校情報を入力
 
 ### ファイル構成（計画）
 ```

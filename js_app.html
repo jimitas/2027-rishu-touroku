@@ -1,39 +1,149 @@
     <script>
         // アプリケーション初期化
         (function() {
-            
+
+            // =============================================
+            // Modal ユーティリティ
+            // モーダルの開閉・動的生成を統一管理する
+            // =============================================
+            const Modal = {
+                /**
+                 * モーダルを表示
+                 * @param {string} id - モーダルのDOM ID
+                 */
+                open(id) {
+                    const modal = document.getElementById(id);
+                    if (!modal) return;
+                    modal.style.display = 'flex';
+                    document.documentElement.classList.add('modal-open');
+                },
+
+                /**
+                 * モーダルを非表示
+                 * @param {string} id - モーダルのDOM ID
+                 */
+                close(id) {
+                    const modal = document.getElementById(id);
+                    if (!modal) return;
+                    modal.style.display = 'none';
+                    // 他に開いているモーダルがなければbodyのクラスを除去
+                    const anyOpen = document.querySelector('.modal[style*="flex"], .confirmation-modal[style*="flex"], .submit-confirmation-modal[style*="flex"]');
+                    if (!anyOpen) {
+                        document.documentElement.classList.remove('modal-open');
+                    }
+                },
+
+                /**
+                 * 確認ダイアログ（動的生成）
+                 * @param {Object} options
+                 * @param {string} options.title - タイトル
+                 * @param {string} options.message - メッセージ（テキスト。HTMLはエスケープされる）
+                 * @param {string} options.confirmLabel - 確認ボタンラベル（デフォルト: 'OK'）
+                 * @param {string} options.cancelLabel - キャンセルボタンラベル（デフォルト: '戻る'）
+                 * @param {string} options.confirmStyle - 確認ボタンスタイル: 'primary'|'danger'（デフォルト: 'primary'）
+                 * @returns {Promise<boolean>} 確認=true, キャンセル=false
+                 */
+                confirm(options) {
+                    return new Promise((resolve) => {
+                        const id = 'modal-confirm-' + Date.now();
+                        const escapeHtml = (text) => {
+                            const div = document.createElement('div');
+                            div.textContent = String(text || '');
+                            return div.innerHTML;
+                        };
+
+                        const btnClass = options.confirmStyle === 'danger' ? 'btn-danger' : 'btn-primary';
+                        const overlay = document.createElement('div');
+                        overlay.id = id;
+                        overlay.className = 'submit-confirmation-modal';
+                        overlay.style.display = 'flex';
+                        overlay.innerHTML = `
+                            <div class="submit-confirmation-content">
+                                <h3>${escapeHtml(options.title || '確認')}</h3>
+                                <p>${escapeHtml(options.message || '')}</p>
+                                <div style="display:flex;gap:10px;justify-content:center;margin-top:15px;">
+                                    <button class="btn-secondary" data-action="cancel">${escapeHtml(options.cancelLabel || '戻る')}</button>
+                                    <button class="${btnClass}" data-action="confirm">${escapeHtml(options.confirmLabel || 'OK')}</button>
+                                </div>
+                            </div>`;
+                        document.body.appendChild(overlay);
+
+                        overlay.addEventListener('click', (e) => {
+                            const action = e.target.dataset.action;
+                            if (action === 'confirm') { cleanup(); resolve(true); }
+                            else if (action === 'cancel') { cleanup(); resolve(false); }
+                        });
+
+                        function cleanup() {
+                            overlay.remove();
+                        }
+                    });
+                },
+
+                /**
+                 * 処理中モーダルを表示
+                 * @param {string} message - 表示メッセージ
+                 * @returns {Function} 閉じる関数
+                 */
+                showProcessing(message) {
+                    const id = 'modal-processing-' + Date.now();
+                    const overlay = document.createElement('div');
+                    overlay.id = id;
+                    overlay.className = 'submit-confirmation-modal';
+                    overlay.style.display = 'flex';
+                    overlay.style.zIndex = '25000';
+                    overlay.innerHTML = `
+                        <div class="submit-confirmation-content">
+                            <div class="spinner spinner-primary" style="margin:0 auto 15px;"></div>
+                            <p>${message || '処理中...'}</p>
+                        </div>`;
+                    document.body.appendChild(overlay);
+                    return () => overlay.remove();
+                },
+            };
+
+            // =============================================
             // アプリケーション状態管理
+            // カテゴリ: auth / master / registration / ui / teacher
+            // =============================================
             const AppState = {
+                // --- auth: 認証関連 ---
                 isAuthenticated: false,
                 currentUser: null,
-                userRole: 'student', // student, teacher, admin
-                courseData: {},
-                registrationData: {},
-                allCourses: [],
-                completedCourses: [],
-                inProgressCourses: [],
-                retakenCourses: [],
-                retakenYearMap: {},
+                userRole: 'student',        // student | teacher | kyomu | admin
+                authenticatedUser: null,    // 認証ユーザーのバックアップ（画面切替時の復元用）
+
+                // --- master: マスタデータ（読み取り専用に近い）---
+                courseData: {},              // 学年別科目データ
+                allCourses: [],             // 全科目フラット配列
+                settings: {},               // 設定データ（学校名など）
+
+                // --- registration: 生徒の履修登録データ ---
+                registrationData: {},       // 現在の登録データ { 科目名: マーク値 }
+                completedCourses: [],       // ●マーク科目
+                inProgressCourses: [],      // ○マーク科目
+                retakenCourses: [],         // 再履修科目
+                retakenYearMap: {},          // 再履修科目の学年マッピング
                 completedCoursesYearMap: {}, // 履修済み科目の学年指定マッピング
                 inProgressCoursesYearMap: {}, // 履修中科目の学年指定マッピング
                 currentlyEnrolledCourses: [],           // △マーク科目（現在履修中）
                 currentlyEnrolledCoursesYearMap: {},    // △科目の学年指定マッピング
-                registeredCourses: [],
-                isDirty: false, // 未保存の変更があるかどうか
-                initialRegistrationData: null, // 初期状態のスナップショット（dirty判定用）
-                authenticatedUser: null, // 認証ユーザーのバックアップ（画面切り替え時の復元用）
-                webAppUrl: null, // WebアプリURL（起動時に取得）
-                // 教員・生徒データ分離用変数
-                teacherUser: null,           // 教員の固定データ（不変）
-                selectedStudent: null,       // 現在選択中の生徒データ
-                currentMode: 'top',          // 'teacher' | 'student' | 'top'
-                // 教員データ完全保存用変数
-                teacherStudentSubmissionData: null,  // 教員の生データ（processRegistrationStatusで全派生状態を再計算するため）
-                teacherSavedRegistrationData: null,  // 教員自身の未保存UI選択（画面遷移時にバックアップ）
-                teacherSavedRegisteredCourses: null,  // 教員自身の未保存registeredCourses（画面遷移時にバックアップ）
-                settings: {}, // 設定データ（学校名など）
-                courseFilterActive: false, // 科目フィルタートグル状態
-                meetsElectiveRequired: true // 選択必修チェック結果（updateUnitsDisplayで更新）
+                registeredCourses: [],      // 今回登録する科目
+                isDirty: false,             // 未保存の変更があるか
+                initialRegistrationData: null, // 初期スナップショット（dirty判定用）
+                meetsElectiveRequired: true,// 選択必修チェック結果
+
+                // --- ui: UI状態 ---
+                currentMode: 'top',         // 'top' | 'student' | 'teacher'
+                selectedStudent: null,      // 現在選択中の生徒データ
+                webAppUrl: null,            // WebアプリURL
+                courseFilterActive: false,   // 科目フィルタートグル状態
+
+                // --- teacher: 教員固有の状態 ---
+                teacherUser: null,          // 教員の固定データ（不変）
+                teacherStudentSubmissionData: null,  // 教員の生データ
+                teacherSavedRegistrationData: null,  // 教員自身の未保存UI選択バックアップ
+                teacherSavedRegisteredCourses: null,  // 教員自身のregisteredCoursesバックアップ
             };
 
             // 登録状態管理
@@ -2454,7 +2564,7 @@
                         } else {
                             // 要件を満たしていない場合
                             let deficiencyHtml = result.deficiencies.map(d =>
-                                `<div>・${d.subject}: あと${d.shortage}単位不足（現在${d.current}/${d.required}単位）</div>`
+                                `<div>・${Utils.escapeHtml(d.subject)}: あと${parseInt(d.shortage) || 0}単位不足（現在${parseInt(d.current) || 0}/${parseInt(d.required) || 0}単位）</div>`
                             ).join('');
 
                             element.innerHTML = `
@@ -2832,9 +2942,9 @@
                 },
 
                 renderSectionGroup(sectionName, courses) {
-                    
+
                     let html = `<div class="course-group">`;
-                    html += `<h2>${sectionName}</h2>`;
+                    html += `<h2>${Utils.escapeHtml(sectionName)}</h2>`;
                     
                     if (courses.length === 0) {
                         html += '<p>このセクションに科目がありません。</p>';
@@ -2960,7 +3070,8 @@
                         // readOnlyモードでは選択機能を無効化
                         const cellClass = readOnly ? markClass.replace(' selectable', ' read-only') : markClass;
                         // data-course-name属性は常に追加（同時不可制約UIで必要）
-                        const clickable = `data-course-name="${course['科目名']}"`;
+                        const escapedCourseName = Utils.escapeHtml(course['科目名']);
+                        const clickable = `data-course-name="${escapedCourseName}"`;
 
                         html += `<tr class="course-row ${isRequired ? 'is-required' : ''}">`;
                         // 詳細テキスト: 履修済み以外は常時表示
@@ -2975,8 +3086,8 @@
                                 warningHtml = ' <span class="elective-req-warning" style="color: #e67e22; cursor: pointer;" onclick="event.stopPropagation(); Utils.showToast(\'選択必修を選択する必要があります\');">⚠</span>';
                             }
                         }
-                        html += `<td><div class="course-name-wrapper">${course['科目名']}${warningHtml}${detailHtml}</div></td>`;
-                        html += `<td>${Utils.getDisplayCategory(course['区分'])}</td>`;
+                        html += `<td><div class="course-name-wrapper">${escapedCourseName}${warningHtml}${detailHtml}</div></td>`;
+                        html += `<td>${Utils.escapeHtml(Utils.getDisplayCategory(course['区分']))}</td>`;
                         html += `<td>${Utils.getUnits(course)}</td>`;
                         html += `<td class="${cellClass}" ${clickable}>${markText}</td>`;
                         html += `</tr>`;
@@ -3326,7 +3437,7 @@
                             clearTimeout(this.bannerTimer);
                         }
                         
-                        messageDiv.innerHTML = message.replace(/\n/g, '<br>');
+                        messageDiv.innerHTML = Utils.escapeHtml(message).replace(/\n/g, '<br>');
                         banner.classList.add('show');
                         
                         // 新しい5秒タイマーを設定
@@ -3354,7 +3465,7 @@
                     // リスト形式で科目名を表示
                     let html = '選択を解除した科目があります。<br>';
                     html += removedCourses.map(({ courseName }) =>
-                        `・${courseName}`
+                        `・${Utils.escapeHtml(courseName)}`
                     ).join('<br>');
 
                     messageDiv.innerHTML = html;
@@ -4536,12 +4647,12 @@
                                                 <div id="teacher-qr-code" style="display: inline-block; padding: 10px; background: white; border-radius: 8px;"></div>
                                                 <div style="margin-top: 15px;">
                                                     <div style="text-align: center; margin-bottom: 10px;">
-                                                        <a id="teacher-qr-link" href="${teacherQrUrl}" target="_blank" style="color: #007bff; text-decoration: underline; font-size: 0.95em;">
+                                                        <a id="teacher-qr-link" href="${Utils.escapeHtml(teacherQrUrl)}" target="_blank" style="color: #007bff; text-decoration: underline; font-size: 0.95em;">
                                                             本登録画面を開く
                                                         </a>
                                                     </div>
                                                     <div style="display: flex; gap: 8px; align-items: center; justify-content: center;">
-                                                        <input type="text" id="teacher-qr-url-text" readonly value="${defaultQrUrl}" style="flex: 1; max-width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85em; background-color: #f8f9fa; color: #333;">
+                                                        <input type="text" id="teacher-qr-url-text" readonly value="${Utils.escapeHtml(defaultQrUrl)}" style="flex: 1; max-width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85em; background-color: #f8f9fa; color: #333;">
                                                         <button id="teacher-copy-link-btn" type="button" style="background: none; border: 1px solid #ddd; border-radius: 4px; padding: 6px 8px; cursor: pointer;" title="URLをコピー">
                                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -5749,10 +5860,10 @@
                     const displayMark = (v) => v || '（空白）';
                     const rowsHtml = changes.map(c => `
                         <tr>
-                            <td style="padding: 6px 10px; border-bottom: 1px solid #eee;">${c.name}</td>
-                            <td style="padding: 6px 10px; border-bottom: 1px solid #eee; text-align: center;">${displayMark(c.before)}</td>
+                            <td style="padding: 6px 10px; border-bottom: 1px solid #eee;">${Utils.escapeHtml(c.name)}</td>
+                            <td style="padding: 6px 10px; border-bottom: 1px solid #eee; text-align: center;">${Utils.escapeHtml(displayMark(c.before))}</td>
                             <td style="padding: 6px 4px; border-bottom: 1px solid #eee; text-align: center; color: #999;">→</td>
-                            <td style="padding: 6px 10px; border-bottom: 1px solid #eee; text-align: center; font-weight: bold;">${displayMark(c.after)}</td>
+                            <td style="padding: 6px 10px; border-bottom: 1px solid #eee; text-align: center; font-weight: bold;">${Utils.escapeHtml(displayMark(c.after))}</td>
                         </tr>
                     `).join('');
 
@@ -6093,7 +6204,7 @@
 
                             if (!canSubmit) {
                                 // 卒業要件を満たしていない場合は警告モーダルを表示
-                                const subjectList = graduationResult.deficiencies.map(d => d.subject).join('、');
+                                const subjectList = graduationResult.deficiencies.map(d => Utils.escapeHtml(d.subject)).join('、');
                                 const modalContent = document.getElementById('graduation-requirement-modal-content');
                                 if (modalContent) {
                                     modalContent.innerHTML = `<div style="color: #721c24;">不足している科目<br>${subjectList}</div>`;
@@ -7314,15 +7425,15 @@
 
                             <div class="pdf-root">
                             <div class="pdf-header-compact">
-                                <div class="pdf-school-name">${AppState.settings['学校名'] || '（学校名未設定）'}</div>
-                                <div class="pdf-datetime">作成日: ${currentDateTime}</div>
+                                <div class="pdf-school-name">${Utils.escapeHtml(AppState.settings['学校名'] || '（学校名未設定）')}</div>
+                                <div class="pdf-datetime">作成日: ${Utils.escapeHtml(currentDateTime)}</div>
                             </div>
 
                             <div class="pdf-title">${type === 'draft' ? '履修登録用紙（記入用紙）' : '履修登録用紙（確認用紙）'}</div>
 
                             <div class="pdf-info">
-                                <div><strong>氏名:</strong> ${studentName}</div>
-                                ${(type === 'draft' || options.hideStatus) ? '' : `<div><strong>提出状態:</strong> ${studentStatus}</div>`}
+                                <div><strong>氏名:</strong> ${Utils.escapeHtml(studentName)}</div>
+                                ${(type === 'draft' || options.hideStatus) ? '' : `<div><strong>提出状態:</strong> ${Utils.escapeHtml(studentStatus)}</div>`}
                             </div>
                             
                             <div class="pdf-columns">
@@ -7373,7 +7484,7 @@
                         if (courses.length === 0) return;
                         
                         html += `<div class="pdf-section">
-                            <div class="pdf-section-title">${section}</div>
+                            <div class="pdf-section-title">${Utils.escapeHtml(section)}</div>
                             <table class="pdf-subject-table">
                                 <thead>
                                     <tr>
@@ -7472,9 +7583,9 @@
                             const detailHtml = (detail && mark && !isCompleted)
                                 ? `<div class="pdf-course-detail">（${Utils.escapeHtml(detail)}）</div>` : '';
                             html += `<tr>
-                                <td class="col-name">${courseName}${detailHtml}</td>
-                                <td class="col-category">${category}</td>
-                                <td class="col-units">${units}</td>
+                                <td class="col-name">${Utils.escapeHtml(courseName)}${detailHtml}</td>
+                                <td class="col-category">${Utils.escapeHtml(category)}</td>
+                                <td class="col-units">${Utils.escapeHtml(units)}</td>
                                 <td class="col-status ${statusClass}">${mark}${diagonalSVG}</td>
                             </tr>`;
                         });
@@ -7695,7 +7806,7 @@
 
                         // セクションを表示
                         html += `<div class="course-group" style="margin-bottom: 20px;">`;
-                        html += `<h2 style="color: #004294; border-bottom: 2px solid #004294; padding-bottom: 5px;">${sectionName}</h2>`;
+                        html += `<h2 style="color: #004294; border-bottom: 2px solid #004294; padding-bottom: 5px;">${Utils.escapeHtml(sectionName)}</h2>`;
 
                         // 科目テーブルを表示
                         html += '<table class="course-table" style="width: 100%; border-collapse: collapse;">';
@@ -7709,14 +7820,14 @@
                             html += `<tr>`;
                             const detail = course['詳細'];
                             const detailHtml = detail ? `<div class="course-detail">${Utils.escapeHtml(detail)}</div>` : '';
-                            html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${course['科目名']}${detailHtml}</td>`;
-                            html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${Utils.getDisplayCategory(course['区分'])}</td>`;
+                            html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${Utils.escapeHtml(course['科目名'])}${detailHtml}</td>`;
+                            html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${Utils.escapeHtml(Utils.getDisplayCategory(course['区分']))}</td>`;
                             html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${units}</td>`;
                             html += `</tr>`;
                         });
 
                         html += '</tbody></table>';
-                        html += `<div style="text-align: right; margin-top: 5px; font-weight: bold; color: #004294;">${sectionName}合計: ${sectionTotal}単位</div>`;
+                        html += `<div style="text-align: right; margin-top: 5px; font-weight: bold; color: #004294;">${Utils.escapeHtml(sectionName)}合計: ${sectionTotal}単位</div>`;
                         html += `</div>`;
 
                         currentYearTotal += sectionTotal; // 今年度の合計に加算
@@ -7961,7 +8072,7 @@
 
                                 const name = row[nameIdx] ? String(row[nameIdx]).trim() : '';
                                 if (!name) {
-                                    statusDiv.innerHTML = `<span style="color: #dc3545;">${i + 1}行目（データ行）: 名前が空です（学籍番号: ${studentId}）</span>`;
+                                    statusDiv.innerHTML = `<span style="color: #dc3545;">${i + 1}行目（データ行）: 名前が空です（学籍番号: ${Utils.escapeHtml(studentId)}）</span>`;
                                     event.target.value = '';
                                     return;
                                 }
@@ -7971,7 +8082,7 @@
                                 if (gradeIdx !== -1 && row[gradeIdx] != null) {
                                     const gradeVal = String(row[gradeIdx]).trim();
                                     if (gradeVal !== '' && gradeVal !== '0' && gradeVal !== '1') {
-                                        statusDiv.innerHTML = `<span style="color: #dc3545;">${i + 1}行目（データ行）: 学年は0または1のみ指定可能です（${gradeVal}、学籍番号: ${studentId}）</span>`;
+                                        statusDiv.innerHTML = `<span style="color: #dc3545;">${i + 1}行目（データ行）: 学年は0または1のみ指定可能です（${Utils.escapeHtml(gradeVal)}、学籍番号: ${Utils.escapeHtml(studentId)}）</span>`;
                                         event.target.value = '';
                                         return;
                                     }
@@ -8051,11 +8162,11 @@
                         const isDuplicate = existingIds.has(s['学籍番号']);
                         const rowStyle = isDuplicate ? 'color: #999; background: #f5f5f5;' : '';
                         html += `<tr style="${rowStyle}">`;
-                        html += `<td style="padding: 4px 8px; border-bottom: 1px solid #eee;">${s['学籍番号']}</td>`;
-                        html += `<td style="padding: 4px 8px; border-bottom: 1px solid #eee;">${s['名前']}</td>`;
-                        html += `<td style="padding: 4px 8px; border-bottom: 1px solid #eee; text-align: center;">${s['組'] || ''}</td>`;
-                        html += `<td style="padding: 4px 8px; border-bottom: 1px solid #eee; text-align: center;">${s['番号'] || ''}</td>`;
-                        html += `<td style="padding: 4px 8px; border-bottom: 1px solid #eee; text-align: center;">${s['学年']}</td>`;
+                        html += `<td style="padding: 4px 8px; border-bottom: 1px solid #eee;">${Utils.escapeHtml(s['学籍番号'])}</td>`;
+                        html += `<td style="padding: 4px 8px; border-bottom: 1px solid #eee;">${Utils.escapeHtml(s['名前'])}</td>`;
+                        html += `<td style="padding: 4px 8px; border-bottom: 1px solid #eee; text-align: center;">${Utils.escapeHtml(s['組'] || '')}</td>`;
+                        html += `<td style="padding: 4px 8px; border-bottom: 1px solid #eee; text-align: center;">${Utils.escapeHtml(s['番号'] || '')}</td>`;
+                        html += `<td style="padding: 4px 8px; border-bottom: 1px solid #eee; text-align: center;">${Utils.escapeHtml(s['学年'])}</td>`;
                         html += `<td style="padding: 4px 8px; border-bottom: 1px solid #eee; text-align: center;">${isDuplicate ? '<span style="color: #dc3545;">（既存）</span>' : '新規'}</td>`;
                         html += '</tr>';
                     });
@@ -8118,9 +8229,9 @@
                         document.getElementById('new-student-import-modal').style.display = 'none';
 
                         if (result && result.success) {
-                            let msg = `<span style="color: #28a745;">取込完了: ${result.addedCount}名を追加しました。</span>`;
+                            let msg = `<span style="color: #28a745;">取込完了: ${parseInt(result.addedCount) || 0}名を追加しました。</span>`;
                             if (result.skippedDuplicates && result.skippedDuplicates.length > 0) {
-                                msg += `<br><span style="color: #856404;">重複スキップ: ${result.skippedDuplicates.length}名（${result.skippedDuplicates.join(', ')}）</span>`;
+                                msg += `<br><span style="color: #856404;">重複スキップ: ${result.skippedDuplicates.length}名（${result.skippedDuplicates.map(s => Utils.escapeHtml(s)).join(', ')}）</span>`;
                             }
                             statusDiv.innerHTML = msg;
 
@@ -8130,12 +8241,12 @@
                                 TeacherScreen.loadStudentsData();
                             }
                         } else {
-                            statusDiv.innerHTML = `<span style="color: #dc3545;">エラー: ${result ? result.error : '不明なエラー'}</span>`;
+                            statusDiv.innerHTML = `<span style="color: #dc3545;">エラー: ${Utils.escapeHtml(result ? result.error : '不明なエラー')}</span>`;
                         }
                     } catch (err) {
                         console.error('[新入生データ取り込み] 実行エラー:', err);
                         document.getElementById('new-student-import-modal').style.display = 'none';
-                        statusDiv.innerHTML = `<span style="color: #dc3545;">エラー: ${err.message || err}</span>`;
+                        statusDiv.innerHTML = `<span style="color: #dc3545;">エラー: ${Utils.escapeHtml(err.message || err)}</span>`;
                     } finally {
                         confirmBtn.disabled = false;
                         confirmBtn.textContent = '取込実行';
@@ -8225,7 +8336,7 @@
                         if (gradeIdx === -1) missing.push('学年');
                         console.error('[テストデータ取込] 必要列が不足:', missing.join(', '));
                         const statusDiv = document.getElementById('excel-import-status');
-                        statusDiv.innerHTML = `<span style="color: #dc3545;">必要な列が見つかりません: ${missing.join(', ')}</span>`;
+                        statusDiv.innerHTML = `<span style="color: #dc3545;">必要な列が見つかりません: ${missing.map(s => Utils.escapeHtml(s)).join(', ')}</span>`;
                         return null;
                     }
 
@@ -8324,7 +8435,7 @@
                                     ⚠ マッチしなかった科目（${unmatchedSubjects.length}件）
                                 </div>
                                 <div style="font-size: 0.85em; max-height: 120px; overflow-y: auto;">
-                                    ${unmatchedSubjects.map(s => `<div style="padding: 2px 0;">・${s}</div>`).join('')}
+                                    ${unmatchedSubjects.map(s => `<div style="padding: 2px 0;">・${Utils.escapeHtml(s)}</div>`).join('')}
                                 </div>
                                 <div style="font-size: 0.8em; color: #92400e; margin-top: 6px;">
                                     これらの科目は取り込まれません。
@@ -8367,13 +8478,13 @@
                         const result = await DataManager.callGASFunction('importTestResults', importData);
 
                         if (result && result.success) {
-                            let msg = `取込完了: ${result.updatedStudents}名, ${result.updatedCells}件更新, ${result.skippedCells}件スキップ`;
-                            statusDiv.innerHTML = `<div style="color: #28a745;">${msg}</div>`;
+                            let msg = `取込完了: ${parseInt(result.updatedStudents) || 0}名, ${parseInt(result.updatedCells) || 0}件更新, ${parseInt(result.skippedCells) || 0}件スキップ`;
+                            statusDiv.innerHTML = `<div style="color: #28a745;">${Utils.escapeHtml(msg)}</div>`;
                             Utils.showToast(msg, 'success');
 
                             if (result.notFoundStudents && result.notFoundStudents.length > 0) {
                                 statusDiv.innerHTML += `<div style="color: #b45309; margin-top: 6px; font-size: 0.85em;">
-                                    未登録の学籍番号: ${result.notFoundStudents.join(', ')}
+                                    未登録の学籍番号: ${result.notFoundStudents.map(s => Utils.escapeHtml(s)).join(', ')}
                                 </div>`;
                             }
 
@@ -8384,7 +8495,7 @@
                             await TeacherScreen.loadStudentsData();
                         } else {
                             const errorMsg = result?.error || '不明なエラー';
-                            statusDiv.innerHTML = `<span style="color: #dc3545;">取込失敗: ${errorMsg}</span>`;
+                            statusDiv.innerHTML = `<span style="color: #dc3545;">取込失敗: ${Utils.escapeHtml(errorMsg)}</span>`;
                             Utils.showToast('取込に失敗しました');
                         }
                     } catch (error) {
@@ -8517,7 +8628,7 @@
                                     削除対象の生徒（${matchedIds.length}名）
                                 </div>
                                 <div style="font-size: 0.85em; max-height: 200px; overflow-y: auto;">
-                                    ${matchedIds.map(id => `<div style="padding: 2px 0;">・${id}（${matchedTransfer[id]}）</div>`).join('')}
+                                    ${matchedIds.map(id => `<div style="padding: 2px 0;">・${Utils.escapeHtml(id)}（${Utils.escapeHtml(matchedTransfer[id])}）</div>`).join('')}
                                 </div>
                             </div>
                         `;
@@ -8535,7 +8646,7 @@
                         html += `
                             <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #dee2e6;">
                                 <div style="font-size: 0.85em; color: #6c757d;">
-                                    登録データに存在しない学籍番号（${unmatchedIds.length}件）: ${unmatchedIds.join(', ')}
+                                    登録データに存在しない学籍番号（${unmatchedIds.length}件）: ${unmatchedIds.map(s => Utils.escapeHtml(s)).join(', ')}
                                 </div>
                             </div>
                         `;
@@ -8579,7 +8690,7 @@
                             await TeacherScreen.loadStudentsData();
                         } else {
                             const errorMsg = result?.error || '不明なエラー';
-                            statusDiv.innerHTML = `<span style="color: #dc3545;">削除失敗: ${errorMsg}</span>`;
+                            statusDiv.innerHTML = `<span style="color: #dc3545;">削除失敗: ${Utils.escapeHtml(errorMsg)}</span>`;
                             Utils.showToast('削除に失敗しました');
                         }
                     } catch (error) {
