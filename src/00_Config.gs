@@ -29,9 +29,9 @@ const CONFIG = Object.freeze({
     TEACHER:    '教職員データ',
     ROSTER:     '生徒情報',
     SETTINGS:   '設定',
-    // Phase 2 で追加予定
-    // REGISTRATION_HEADER: '登録ヘッダー',
-    // REGISTRATION_DETAIL: '登録明細',
+    // Phase 2: 縦持ちシート
+    REG_HEADER: '登録ヘッダー',
+    REG_DETAIL: '登録明細',
     // 後回し（コア機能外）
     // TEXTBOOK:   '教科書',
     // REPORT:     'レポート',

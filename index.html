@@ -10420,7 +10420,7 @@
 
                             <div class="pdf-root">
                             <div class="pdf-header-compact">
-                                <div class="pdf-school-name">${AppState.settings['学校名'] || '京都芸術大学附属高等学校　普通科'}</div>
+                                <div class="pdf-school-name">${AppState.settings['学校名'] || '（学校名未設定）'}</div>
                                 <div class="pdf-datetime">作成日: ${currentDateTime}</div>
                             </div>
 
@@ -10943,7 +10943,7 @@
                             Object.assign(AppState.settings, settingsData);
 
                             // 学校名を更新
-                            const schoolName = AppState.settings['学校名'] || '京都芸術大学附属高等学校　普通科';
+                            const schoolName = AppState.settings['学校名'] || '（学校名未設定）';
                             const schoolNameElements = [
                                 document.getElementById('school-name-header'),
                                 document.getElementById('school-name-teacher'),
@@ -18724,7 +18724,7 @@
                         // 学校名を設定
                         const schoolNameFinal = document.getElementById('school-name-final');
                         if (schoolNameFinal) {
-                            schoolNameFinal.textContent = AppState.settings?.['学校名'] || '京都芸術大学附属高等学校　普通科';
+                            schoolNameFinal.textContent = AppState.settings?.['学校名'] || '（学校名未設定）';
                         }
                     } else {
                         console.error('❌ final-registration-screen が見つかりません');
@@ -19109,7 +19109,7 @@
 
                     // 学校名をヘッダーに設定（AuthManagerでsettingsを取得済み）
                     if (AppState.settings) {
-                        const schoolName = AppState.settings['学校名'] || '京都芸術大学附属高等学校　普通科';
+                        const schoolName = AppState.settings['学校名'] || '（学校名未設定）';
                         const schoolNameHeader = document.getElementById('school-name-header');
                         const schoolNameTeacher = document.getElementById('school-name-teacher');
                         const schoolNameAdmin = document.getElementById('school-name-admin');

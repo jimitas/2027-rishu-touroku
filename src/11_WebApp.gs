@@ -305,7 +305,7 @@ function doGet(e) {
 
     return HtmlService.createHtmlOutput(html)
       .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-      .setTitle('履修登録システム - 京都芸術大学附属高等学校')
+      .setTitle('履修登録システム - ' + (SettingsService.getSettings()[CONFIG.SETTING_KEYS.SCHOOL_NAME] || CONFIG.DEFAULTS.SCHOOL_NAME))
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 
   } catch (error) {
