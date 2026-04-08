@@ -12,9 +12,9 @@
 | Phase | 内容 | 状態 | 完了日 |
 |-------|------|------|--------|
 | 準備 | リバースエンジニアリング・分析 | 完了 | 2026-04-08 |
-| 1-1 | バックエンド ファイル分割 | 未着手 | - |
-| 1-2 | 重複パターンの共通化 | 未着手 | - |
-| 1-3 | approveStudent バグ修正 | 未着手 | - |
+| 1-1 | バックエンド ファイル分割 | 完了 | 2026-04-08 |
+| 1-2 | 重複パターンの共通化 | 完了（1-1と同時） | 2026-04-08 |
+| 1-3 | approveStudent バグ修正 | 完了（1-1と同時） | 2026-04-08 |
 | 1-4 | 学校固有情報の外部化 | 未着手 | - |
 | 2-1 | 科目IDの導入 | 未着手 | - |
 | 2-2 | 登録データの縦持ち化 | 未着手 | - |
@@ -51,12 +51,42 @@
 
 ---
 
+### 2026-04-08: Phase 1-1/1-2/1-3 完了
+
+**実施内容:**
+- `コード.js`（5,046行）を11ファイル（計4,745行）に分割
+- 共通ユーティリティ作成: `SheetUtils`, `Logger_`, `Validator` (01_Utils.gs)
+- キャッシュ基盤を統一: 4つの`*Cached()`関数 → `SheetAccess.getCachedData()` 1関数 (02_SheetAccess.gs)
+- 認証モジュール分離: `Auth` 名前空間 (03_Auth.gs)
+- サービス層分割: CourseService, RegistrationService, StudentService, StaffService, SettingsService, AdminService
+- `CONFIG`定数による一元管理: シート名、ステータス、ロール、基本カラム名
+- `approveStudent()` バグ修正: 未定義だった関数を05_RegistrationService.gsに新規実装
+- 全公開APIに後方互換ラッパーを追加（既存フロントエンドとの互換性維持）
+
+**ファイル構成:**
+```
+src/
+├── 00_Config.gs              (104行) 定数・設定
+├── 01_Utils.gs               (293行) SheetUtils, Logger_, Validator
+├── 02_SheetAccess.gs         (233行) キャッシュ基盤
+├── 03_Auth.gs                (292行) 認証・認可
+├── 04_CourseService.gs       (431行) 科目マスタ
+├── 05_RegistrationService.gs (1007行) 履修登録
+├── 06_StudentService.gs      (666行) 生徒データ
+├── 07_StaffService.gs        (349行) 教職員管理
+├── 08_SettingsService.gs     (125行) 設定管理
+├── 09_AdminService.gs        (890行) 管理者機能
+└── 11_WebApp.gs              (355行) WebApp・API
+```
+
+---
+
 ## 再開ガイド
 
 ### 次に何をすべきか
-1. Phase 1-1 から開始: `00_Config.gs` と `01_Utils.gs` を作成
-2. 続いて `02_SheetAccess.gs`（キャッシュ基盤）を作成
-3. `コード.js` の関数を各サービスファイルに分割
+1. Phase 1-4: 学校固有情報の外部化（CONFIG.DEFAULTSの適用）
+2. Phase 2-1: 科目IDの導入（科目データシートにID列追加）
+3. Phase 3-1: doGetの変更（createTemplateFromFile化）、フロントエンド分割
 
 ### ファイル構成（計画）
 ```
