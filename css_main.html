@@ -1,0 +1,1745 @@
+    <style>
+        /* グローバルbox-sizing: padding/borderを幅に含める */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        /* デザインテーマを更新 */
+        :root {
+            --bg-color: #f8f9fa;
+            --surface-color: #ffffff;
+            --header-summary-bg-color: #f8f9fa; /* ヘッダーの背景 */
+            --summary-bg-color: linear-gradient(135deg, #1976d2 0%, #42a5f5 25%, #64b5f6 50%, #90caf9 75%, #e3f2fd 100%); /* サマリーエリアの軽い青グラデーション */
+            --primary-color: #004294; /* プライマリzカラー */
+            --primary-color-hover: #0056b3;
+            --text-color: #212529;
+            --text-secondary-color: #6c757d;
+            --border-color: #dee2e6;
+            --danger-color: #dc3545;
+            --required-row-bg-color: #f8fbff; /* 必修科目の行の青基調暖色 */
+            --manual-registered-color: #00d68f; /* 手動選択〇の文字色（ネオングリーン） */
+            --auto-registered-color: #3b82f6; /* 自動入力〇の文字色（統一色） */
+            --required-selectable-color: #3b82f6; /* 自動入力〇の文字色（統一色） */
+            --completed-mark-color: #000000; /* 履修済み●の文字色 */
+            --retaken-mark-color: #dc3545; /* 再履修2の文字色 */
+            
+            /* 学年別グラフの色（同系色で濃淡） */
+            --year1-req-color: #d9534f; /* 1年必修: 赤 */
+            --year1-ele-color: #e47a77; /* 1年その他: 薄い赤 */
+            --year2-req-color: #ec971f; /* 2年必修: オレンジ */
+            --year2-ele-color: #f0ad4e; /* 2年その他: 薄いオレンジ */
+            --year3-req-color: #5cb85c; /* 3年必修: 緑 */
+            --year3-ele-color: #88d688; /* 3年その他: 薄い緑 */
+        }
+
+        /* iOS Safari対策: html要素にもoverflow-x: hiddenが必要 */
+        html {
+            overflow-x: hidden;
+            scrollbar-gutter: stable;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 15px 15px 200px 15px; /* 下側にサマリーエリア分の余白を追加 */
+            overflow-x: hidden;
+        }
+
+        /* モーダル表示時のスクロール制御 */
+        html.modal-open,
+        body.modal-open {
+            overflow: hidden;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: var(--surface-color);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            overflow-x: hidden;
+        }
+
+        h1, h2 {
+            color: var(--primary-color);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-top: 30px;
+        }
+
+        .header-area {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+            background: white;
+            padding: 15px;
+            margin: -20px -20px 20px -20px;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .main-title-container {
+            flex: 1;
+            text-align: left;
+        }
+
+        .main-title-container h1 {
+            margin: 0;
+            text-align: left;
+        }
+
+
+        button {
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 16px;
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-color-hover);
+        }
+
+        button:disabled {
+            background-color: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        /* --- 固定サマリーエリア（下部固定） --- */
+        .summary-area {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--summary-bg-color);
+            z-index: 10;
+            border-top: 1px solid var(--border-color);
+            padding: 5px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 -2px 8px rgba(0, 123, 255, 0.1);
+            box-sizing: border-box;
+        }
+
+        .total-units-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: white;
+            text-shadow:
+                -1px -1px 0 #004294,
+                1px -1px 0 #004294,
+                -1px 1px 0 #004294,
+                1px 1px 0 #004294,
+                0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+        
+        .user-info-in-summary {
+            font-size: 0.9em;
+            min-height: 3.0em;
+            color: white;
+            text-shadow:
+                -1px -1px 0 #004294,
+                1px -1px 0 #004294,
+                -1px 1px 0 #004294,
+                1px 1px 0 #004294,
+                0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+        
+        .units-info {
+            text-align: right;
+        }
+
+        .yearly-progress-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .progress-bar-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .progress-bar-label {
+            font-size: 0.9em;
+            min-width: 40px;
+            flex-shrink: 0;
+            white-space: nowrap;
+            color: white;
+            text-shadow:
+                -1px -1px 0 #004294,
+                1px -1px 0 #004294,
+                -1px 1px 0 #004294,
+                1px 1px 0 #004294,
+                0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        .progress-bar {
+            flex-grow: 1;
+            background: linear-gradient(90deg, #f0f4f8 0%, #e2e8f0 100%);
+            border-radius: 4px;
+            overflow: hidden;
+            height: 22px;
+            display: flex;
+            border: 1px solid #cbd5e0;
+        }
+
+        .progress-bar-segment {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.65em;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .progress-bar-segment.required {
+            background: linear-gradient(90deg, #1e40af 0%, #3b82f6 50%, #1e40af 100%);
+        }
+
+        .progress-bar-segment.retaken-required {
+            background: linear-gradient(90deg, #ff6b35 0%, #ff8c42 50%, #ff6b35 100%);
+        }
+
+        .progress-bar-segment.required-designated {
+            background: linear-gradient(90deg, #22d3ee 0%, #0891b2 50%, #22d3ee 100%);
+        }
+
+        .progress-bar-segment.elective {
+            background: linear-gradient(90deg, #00ff88 0%, #00d68f 50%, #00ff88 100%);
+        }
+
+        .progress-bar-segment.completed {
+            background: linear-gradient(90deg, #6b7280 0%, #7f8a99 50%, #6b7280 100%);
+        }
+
+        .progress-bar-segment.currently-enrolled {
+            background: linear-gradient(90deg, #a78bfa 0%, #8b6ff0 50%, #a78bfa 100%);
+        }
+
+        #save-draft-button.is-disabled {
+            background-color: #e9ecef !important;
+            color: #6c757d !important;
+            cursor: not-allowed;
+        }
+
+        .progress-bar-value {
+            font-size: 0.9em;
+            min-width: 45px;
+            flex-shrink: 0;
+            text-align: right;
+            white-space: nowrap;
+            color: white;
+            text-shadow:
+                -1px -1px 0 #004294,
+                1px -1px 0 #004294,
+                -1px 1px 0 #004294,
+                1px 1px 0 #004294,
+                0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        .grand-total-units {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            align-items: center;
+            color: white;
+            text-shadow:
+                -1px -1px 0 #004294,
+                1px -1px 0 #004294,
+                -1px 1px 0 #004294,
+                1px 1px 0 #004294,
+                0 2px 4px rgba(0, 0, 0, 0.4);
+            padding-top: 5px;
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+            margin-top: 8px;
+        }
+        
+        .grand-total-units > div:first-child {
+            justify-self: start;
+        }
+        
+        .grand-total-units > div:nth-child(2) {
+            justify-self: center;
+        }
+        
+        .grand-total-units > div:last-child {
+            justify-self: end;
+        }
+        
+        .save-button-in-summary {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .save-button-in-summary:hover {
+            background-color: var(--primary-color-hover);
+        }
+
+        .save-draft-btn {
+            background-color: #6c757d;
+        }
+
+        .save-draft-btn:hover {
+            background-color: #5a6268 !important;
+        }
+
+        .save-button-in-summary:disabled,
+        .save-button-in-summary.save-draft-btn:disabled {
+            background-color: #e9ecef !important;
+            color: #6c757d !important;
+            cursor: not-allowed;
+        }
+        
+        /* 確認モーダルのスタイル */
+        .confirmation-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        
+        .confirmation-content {
+            background-color: white;
+            padding: 30px 30px 0 30px;
+            width: 90%;
+            max-width: 800px;
+            margin: 0 auto;
+            overflow-y: auto;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1001;
+            max-height: 90vh;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            box-sizing: border-box;
+        }
+        
+        .confirmation-content .course-group {
+            margin-bottom: 25px;
+        }
+        
+        /* 仮登録確認モーダル */
+        /* 汎用モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 20000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px 30px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-content > h2:first-child {
+            margin-top: 0;
+        }
+
+        .submit-confirmation-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 20000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .submit-confirmation-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .submit-confirmation-content h3 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+        
+        .submit-confirmation-content p {
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        
+        .submit-confirmation-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .confirmation-content .course-table {
+            width: 100%;
+            table-layout: auto; /* 確認モーダルは自動レイアウト（科目名列を最大化） */
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        .confirmation-content .course-table th,
+        .confirmation-content .course-table td {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            text-align: left;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+        
+        .confirmation-content .course-detail {
+            padding-left: 0;
+            text-align: center;
+        }
+
+        .confirmation-content .course-table th {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f1f8ff 100%);
+            color: #004294;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .confirmation-content h2 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 5px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .confirmation-buttons {
+            text-align: center;
+            margin-top: 30px;
+            margin-bottom: 0;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            position: sticky;
+            bottom: 0px;
+            background-color: white;
+            padding: 15px 20px 15px 20px;
+            border-top: 1px solid #ddd;
+            z-index: 10;
+        }
+        
+        .btn-confirm, .btn-cancel, .btn-pdf {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-confirm {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-confirm:hover {
+            background-color: var(--primary-color-hover);
+        }
+
+        .btn-confirm:disabled {
+            background-color: #e9ecef !important;
+            color: #6c757d !important;
+            cursor: not-allowed;
+        }
+
+        .btn-confirm.is-disabled {
+            background-color: #e9ecef !important;
+            color: #6c757d !important;
+            cursor: not-allowed;
+        }
+        
+        .btn-cancel {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .btn-cancel:hover {
+            background-color: #5a6268;
+        }
+
+        #teacher-bulk-approve-btn,
+        #teacher-bulk-reject-btn {
+            background-color: var(--primary-color);
+            color: white;
+            transition: none;
+        }
+
+        #teacher-bulk-approve-btn:disabled,
+        #teacher-bulk-reject-btn:disabled {
+            background-color: #e9ecef !important;
+            color: #6c757d !important;
+            cursor: not-allowed;
+        }
+
+        #teacher-single-approve-btn,
+        #teacher-single-reject-btn {
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            transition: none;
+        }
+
+        #teacher-single-approve-btn:disabled,
+        #teacher-single-reject-btn:disabled {
+            background-color: #e9ecef !important;
+            color: #6c757d !important;
+            cursor: not-allowed;
+        }
+        
+        .btn-pdf {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .btn-pdf:hover {
+            background-color: #5a6268;
+        }
+
+        /* --- 登録フォーム --- */
+        .course-group {
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+
+        .course-group h2 {
+            margin-top: 8px;
+        }
+
+        .course-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .course-table th, .course-table td {
+            border: 1px solid var(--border-color);
+            padding: 3px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .course-table th {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f1f8ff 100%);
+            color: #004294;
+            font-weight: bold;
+        }
+
+        .course-table td {
+            height: 44px;
+            background-color: white;
+        }
+
+        /* PC版: 科目名列の折り返し防止（リサイズ時の行高さ変化を防止） */
+        .course-table td:first-child {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* PC版: 詳細表示中のセルのみフォント縮小+行間詰めで2行を44px内に収める */
+        .course-table td:first-child:has(.course-detail) {
+            font-size: 0.85em;
+            line-height: 1.2;
+        }
+
+        /* 科目詳細テキスト（2行目にブロック表示） */
+        .course-detail {
+            display: block;
+            font-size: 0.75em;
+            color: #555;
+            font-weight: normal;
+            line-height: 1.2;
+            margin-top: 1px;
+            padding-left: 1em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 科目名列ラッパー: 行高さ固定（table-cellのheight最小制約を回避） */
+        .course-name-wrapper {
+            max-height: 38px; /* 44px - padding 3px*2 */
+            overflow: hidden;
+        }
+
+        .course-table th:nth-child(2), .course-table td:nth-child(2) {
+            width: 80px; /* 区分列 */
+            white-space: nowrap;
+        }
+
+        .course-table th:nth-child(3), .course-table td:nth-child(3) {
+            width: 55px; /* 単位数列 */
+            white-space: nowrap;
+        }
+
+        .course-table th:nth-child(4), .course-table td:nth-child(4) {
+            width: 70px; /* 登録列 */
+            white-space: nowrap;
+        }
+
+        /* 教職員専用画面: 左パネル分テーブルが狭いため列幅を縮小（科目名は残りスペースを全取り） */
+        #teacher-screen .course-table th:nth-child(2),
+        #teacher-screen .course-table td:nth-child(2) { width: 80px; }
+        #teacher-screen .course-table th:nth-child(3),
+        #teacher-screen .course-table td:nth-child(3) { width: 60px; }
+        #teacher-screen .course-table th:nth-child(4),
+        #teacher-screen .course-table td:nth-child(4) { width: 70px; }
+
+        .course-row.is-required {
+            background-color: var(--required-row-bg-color);
+        }
+
+        .mark-cell {
+            font-size: 1.5em;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .mark-cell.completed {
+            cursor: not-allowed;
+            color: var(--text-color);
+            font-size: 1em;
+            font-weight: normal;
+        }
+
+        .mark-cell.manual-registered {
+            color: var(--manual-registered-color);
+        }
+
+        .mark-cell.auto-registered {
+            cursor: not-allowed;
+            color: var(--auto-registered-color);
+        }
+
+        .mark-cell.retaken-registered {
+            cursor: not-allowed;
+            color: #ff6b35; /* オレンジ色 */
+            font-weight: bold;
+        }
+
+        .mark-cell.required-registered {
+            color: #007bff; /* 青色（必修・グラフと統一） */
+            font-weight: bold;
+            cursor: not-allowed;
+        }
+
+        .mark-cell.required-designated-registered {
+            color: #0d6efd; /* 青色（履修指定） */
+            font-weight: bold;
+            cursor: not-allowed;
+        }
+
+        .mark-cell.elective-registered {
+            color: var(--manual-registered-color); /* 手動選択と同じ明るい緑色に統一 */
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        
+        /* 教職員専用画面の進捗セクション背景色統一 */
+        .progress-section {
+            background: var(--summary-bg-color); /* トップページのサマリーと同じ背景 */
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+        }
+
+        .mark-cell.required-selectable {
+            color: var(--required-selectable-color);
+        }
+        
+        .mark-cell.completed-mark {
+            color: var(--completed-mark-color);
+            font-size: 1em;
+            cursor: not-allowed;
+        }
+        
+        .mark-cell.retaken-mark {
+            color: var(--retaken-mark-color);
+            cursor: not-allowed;
+        }
+
+        .mark-cell.retaken-required-mark {
+            color: #ff6b35; /* 再履修必修科目はオレンジ（グラフと同じ） */
+            cursor: not-allowed;
+        }
+
+        .mark-cell.locked {
+            cursor: not-allowed !important;
+        }
+
+        .mark-cell.unselectable {
+            cursor: not-allowed;
+            position: relative; /* ::after の斜線描画に必要 */
+        }
+
+        .mark-cell.unselectable:not(.completed)::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom right,
+                transparent 49%,
+                rgba(0, 0, 0, 0.4) 49.5%,
+                rgba(0, 0, 0, 0.4) 50.5%,
+                transparent 51%
+            );
+            pointer-events: none;
+        }
+
+        .mark-cell.simultaneous-disabled {
+            cursor: not-allowed !important;
+            color: #999 !important;
+            opacity: 0.6;
+            position: relative;
+        }
+
+        /* 同時不可制約が優先される場合、unselectableの斜線を無効化 */
+        .mark-cell.simultaneous-disabled.unselectable::after {
+            background: none !important;
+        }
+
+        .mark-cell.simultaneous-disabled::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom right,
+                transparent 49%,
+                rgba(0, 0, 0, 0.8) 49.5%,
+                rgba(0, 0, 0, 0.8) 50.5%,
+                transparent 51%
+            ) !important;
+            pointer-events: none;
+            z-index: 2 !important;
+        }
+
+
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 30000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast {
+            background-color: var(--danger-color);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            animation: fadeInOut 4s ease-in-out;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            10%, 90% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .local-mode-badge {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #28a745;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            z-index: 1001;
+        }
+        
+        .submission-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: #ff6b35;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            font-weight: bold;
+            z-index: 1002;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .restriction-banner {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background-color: #ff8c42;
+            color: white;
+            text-align: center;
+            padding: 15px 40px 15px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 1003;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .restriction-banner.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .restriction-banner .close-btn {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            transform: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        /* 登録状態制限バナー */
+        .registration-status-banner {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #ff8c42;
+            color: white;
+            text-align: center;
+            padding: 10px 15px;
+            font-weight: bold;
+            z-index: 500;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .registration-status-banner.show {
+            display: block;
+        }
+        
+        /* 登録状態バナー表示時にコンテンツを下にずらす */
+        body.banner-shown {
+            padding-top: 60px;
+        }
+
+        /* 登録状態バナー表示時に教員・教務承認画面を下にずらす（position: fixed なので top を調整） */
+        body.banner-shown #teacher-screen {
+            top: 60px;
+            height: calc(100vh - 60px);
+        }
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            width: 25px;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        body.has-submission-banner {
+            padding-top: 50px;
+        }
+
+
+        /* --- 教職員専用画面スタイル --- */
+
+        /* トグルスイッチ */
+        .edit-lock-toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            background-color: transparent;
+            border: none;
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+            border-radius: 0;
+            padding: 8px 0;
+            margin-bottom: 8px;
+        }
+
+        .edit-lock-toggle-container.locked {
+            background-color: transparent;
+            border-bottom-color: rgba(255,255,255,0.3);
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 26px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #007bff;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        .toggle-switch input[type="checkbox"]:disabled + .toggle-slider {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        /* 科目フィルタートグル */
+        .course-filter-toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 2px 0 2px 12px;
+            margin-bottom: 0;
+            justify-content: flex-end;
+        }
+        .course-filter-toggle-container .toggle-label {
+            font-size: 0.85em;
+            color: var(--text-secondary-color);
+            cursor: default;
+        }
+        /* フィルタートグルのON時の色を青に */
+        #course-filter-toggle:checked + .toggle-slider,
+        #teacher-course-filter-toggle:checked + .toggle-slider {
+            background-color: var(--primary-color);
+        }
+        /* 新クラスモードトグルのON時の色を青に */
+        #new-class-toggle:checked + .toggle-slider {
+            background-color: var(--primary-color);
+        }
+
+        #teacher-student-list-container:focus {
+            outline: none;
+        }
+
+        .teacher-student-item {
+            display: flex;
+            align-items: center;
+            padding: 4px 12px 4px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .teacher-student-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .teacher-student-item.selected {
+            background-color: #e3f2fd;
+        }
+
+        .teacher-student-item.active {
+            background-color: #bbdefb;
+        }
+
+
+        .student-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .student-name {
+            font-weight: 500;
+            font-size: 1em;
+            margin-bottom: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .student-class-info {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .student-status {
+            font-size: 0.85em;
+            padding: 2px 6px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        .student-status.status-submitted {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .student-status.status-approved {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .student-status.status-draft {
+            background-color: #e2e3e5;
+            color: #383d41;
+            border: 1px solid #d6d8db;
+        }
+
+        .student-status.status-none {
+            background-color: #e2e3e5;
+            color: #383d41;
+            border: 1px solid #d6d8db;
+        }
+
+        .student-status.status-final-ready {
+            background-color: #28a745;
+            color: white;
+            border: 1px solid #28a745;
+        }
+
+        .student-status.status-final-registered {
+            background-color: #007bff;
+            color: white;
+            border: 1px solid #007bff;
+        }
+
+        .student-status.status-leave {
+            background-color: #6c757d;
+            color: white;
+            border: 1px solid #6c757d;
+        }
+
+        /* 登録データ管理画面: マーク編集用select */
+        .admin-manage-mark-select {
+            width: 100%;
+            padding: 4px 2px;
+            font-size: 1.1em;
+            font-weight: normal;
+            text-align: center;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            background: #fff;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+        .admin-manage-mark-select:focus {
+            border-color: #004294;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 66, 148, 0.2);
+        }
+        .admin-manage-basic-input {
+            border: none;
+            outline: none;
+            padding: 8px 8px;
+            width: 100%;
+            box-sizing: border-box;
+            cursor: default;
+            background: transparent;
+        }
+        .admin-manage-basic-input.editing {
+            background: #fff;
+            cursor: text;
+            box-shadow: inset 0 0 0 2px #90caf9;
+        }
+
+        @keyframes status-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .student-status.updating {
+            animation: status-pulse 1s ease-in-out infinite;
+        }
+        #teacher-detail-updating-overlay {
+            position: absolute;
+            inset: 0;
+            background-color: rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            pointer-events: none;
+            animation: detail-overlay-fadein 0.2s ease-in-out;
+        }
+        @keyframes detail-overlay-fadein {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        #teacher-detail-updating-overlay .detail-updating-content {
+            text-align: center;
+        }
+        #teacher-detail-updating-overlay .detail-updating-content p {
+            margin-top: 10px;
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        #teacher-bulk-approve-btn {
+            width: 100%;
+            height: 40px;
+            font-size: 0.9em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        #teacher-bulk-approve-btn:hover {
+            background-color: #0056b3 !important;
+        }
+
+        #teacher-bulk-approve-btn:disabled {
+            background-color: #6c757d !important;
+            cursor: not-allowed;
+        }
+
+        /* --- 生徒詳細表示スタイル --- */
+        .student-detail-header {
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .student-detail-header h2 {
+            margin: 0 0 10px 0;
+            color: var(--primary-color);
+            font-size: 1.4em;
+        }
+
+        .student-meta {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .status-badge.status-submitted {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-badge.status-approved {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.status-draft {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
+
+        .status-badge.status-none {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
+
+        .timestamp {
+            font-size: 0.8em;
+            color: var(--text-secondary-color);
+        }
+
+        .student-detail-summary {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .summary-label {
+            font-size: 0.8em;
+            color: var(--text-secondary-color);
+            margin-bottom: 5px;
+        }
+
+        .summary-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 2px;
+        }
+
+        .summary-sub {
+            font-size: 0.75em;
+            color: var(--text-secondary-color);
+        }
+
+        .student-detail-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .btn-action {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-action:hover {
+            background-color: #5a6268;
+        }
+
+        .btn-action.btn-approve {
+            background-color: var(--primary-color);
+        }
+
+        .btn-action.btn-approve:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-action.btn-revert {
+            background-color: #dc3545;
+        }
+
+        .btn-action.btn-revert:hover {
+            background-color: #c82333;
+        }
+
+        .course-section {
+            margin-bottom: 30px;
+        }
+
+        .course-section h3 {
+            color: var(--primary-color);
+            border-left: 4px solid var(--primary-color);
+            padding-left: 10px;
+            margin-bottom: 15px;
+        }
+
+        .progress-summary {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+
+        .progress-bar-display {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .progress-bar-mini {
+            height: 20px;
+            border-radius: 10px;
+            flex: 1;
+            border: 1px solid #e0e0e0;
+        }
+
+        .progress-text {
+            font-weight: 500;
+            font-size: 0.9em;
+            color: var(--primary-color);
+            white-space: nowrap;
+        }
+
+        .course-table-container {
+            overflow-x: auto;
+        }
+
+        .course-detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .course-detail-table th {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .course-detail-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .course-detail-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .course-name {
+            font-weight: 500;
+        }
+
+        .course-units {
+            text-align: center;
+            width: 80px;
+        }
+
+        .course-status {
+            text-align: center;
+            width: 100px;
+        }
+
+        .status-label {
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+
+        .status-label.status-completed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-label.status-retaken {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-label.status-registered {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+
+        .status-label.status-auto {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-label.status-none {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
+
+        /* 830px以下で全画面化（.containerのmax-width 800px + bodyの左右padding 15px×2 = 830px） */
+        @media (max-width: 830px) {
+            body {
+                padding-left: 0;
+                padding-right: 0;
+            }
+            .container {
+                max-width: none;
+                border-radius: 0;
+                box-shadow: none;
+            }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 5px 0 200px 0;
+            }
+            .container {
+                padding: 15px;
+            }
+            .header-area {
+                margin: -15px -15px 20px -15px; /* containerのpaddingに合わせる */
+            }
+            .summary-area {
+                padding: 5px 10px;
+            }
+            .course-table .mark-cell:not(.completed):not(.completed-mark) { font-size: 24px; line-height: 1; } /* モバイルでも○マークを大きく保つ（親のem縮小に依存しない絶対値）。line-height:1で行膨張防止 */
+            /* 進捗バーのラベルを縮小 */
+            .progress-bar-value {
+                width: 45px;
+            }
+            /* ヘッダー（学校名+メール）を1行に収める */
+            #school-name-header {
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+            #account-info {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                min-width: 0;
+                flex-shrink: 1;
+            }
+            /* 教職員専用画面: 狭幅時はフォント縮小 */
+            #teacher-screen .course-table { font-size: 0.85em; }
+            #teacher-screen .course-table td { height: 44px; }
+            #teacher-screen .course-table .mark-cell:not(.completed):not(.completed-mark) { font-size: 1.5em; }
+            #teacher-screen .progress-bar-value { width: 55px; flex-shrink: 0; font-size: 0.9em; }
+        }
+
+        @media (max-width: 500px) {
+            #share-url-btn { display: none !important; }
+        }
+
+        /* GAS iframe対策フォールバック: viewportメタタグが効かない場合にscreen.widthで判定 */
+        html.sp body { padding: 5px 0 200px 0; }
+        html.sp .container { padding: 15px; max-width: none; border-radius: 0; box-shadow: none; }
+        html.sp .header-area { margin: -15px -15px 20px -15px; }
+        html.sp .summary-area { padding: 5px 10px; }
+        html.sp .course-table th:nth-child(2), html.sp .course-table td:nth-child(2) { width: 55px; font-size: 0.8em; }
+        html.sp .course-table th:nth-child(3), html.sp .course-table td:nth-child(3) { width: 48px; font-size: 0.8em; }
+        html.sp .course-table th:nth-child(4), html.sp .course-table td:nth-child(4) { width: 55px; font-size: 0.8em; }
+        html.sp .course-table td { height: 44px; font-size: 0.85em; }
+        html.sp .course-table .mark-cell:not(.completed):not(.completed-mark) { font-size: 24px; line-height: 1; } /* モバイルでも○マークを大きく保つ（親のem縮小に依存しない絶対値）。line-height:1で行膨張防止 */
+        /* モバイル版: 科目名列はテキスト折り返し許可、詳細はブロック表示（行高さが自然に確保される） */
+        html.sp .course-table td:first-child { white-space: normal; overflow: visible; text-overflow: clip; font-size: 0.85em; }
+        html.sp .course-detail { display: block; line-height: 1.3; margin-top: 2px; margin-left: 0; padding-left: 1em; }
+        html.sp .progress-bar-value { width: 45px; }
+        /* ヘッダー（学校名+メール）を1行に収める（spフォールバック） */
+        html.sp #school-name-header, html.sp #school-name-admin { white-space: nowrap; flex-shrink: 0; font-size: 0.7em !important; }
+        html.sp #account-info { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex-shrink: 1; font-size: 0.7em !important; }
+        html.sp #share-url-btn { display: none !important; }
+        html.sp #teacher-screen .course-table td { height: 44px; font-size: inherit; }
+        html.sp #teacher-screen .course-table .mark-cell:not(.completed):not(.completed-mark) { font-size: 1.5em; }
+        html.sp #teacher-screen .progress-bar-value { width: 55px; flex-shrink: 0; font-size: 0.9em; }
+
+        /* 印刷用スタイル */
+        @media print {
+            /* html/bodyの幅をA4幅に固定（モバイルでwidth:100%にするとviewport幅になり印刷領域と不一致になる） */
+            html {
+                overflow: visible !important;
+            }
+
+            /* bodyのpadding/marginリセット + 幅をA4幅に固定 */
+            body {
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 210mm !important;
+                max-width: none !important;
+                overflow: visible !important;
+            }
+
+            /* 通常のUIを非表示 */
+            body > *:not(.print-content) {
+                display: none !important;
+            }
+
+            /* 印刷コンテンツを表示・中央寄せ */
+            .print-content {
+                display: block !important;
+                position: static !important;
+                left: auto !important;
+                top: auto !important;
+                max-width: none !important; /* html/bodyが幅制御するのでnone */
+                margin: 0 auto !important;
+                background: white !important;
+                overflow: visible !important;
+            }
+
+            /* 各生徒で改ページ（最初以外の前に改ページ） */
+            .print-page:not(:first-child) {
+                page-break-before: always;
+            }
+
+            /* 最終ページ後の空白を防止 */
+            .print-page:last-child {
+                page-break-after: avoid;
+            }
+
+            /* A4サイズ設定 */
+            @page {
+                size: A4;
+                margin: 0;
+            }
+
+            /* 一括印刷コンテナ: ページが独自にpaddingを持つのでコンテナのpaddingは不要 */
+            .print-content.batch-print {
+                padding: 0 !important;
+                max-width: none !important;
+            }
+
+            /* 印刷時のスタイル調整・中央寄せ（@page margin:0の代わりにpaddingで余白確保） */
+            .print-content, .print-page {
+                padding: 10mm 12mm !important;  /* 上下10mm、左右12mm */
+                max-width: none !important; /* html/bodyが幅制御するのでnone */
+                margin: 0 auto !important;
+                min-height: auto !important;
+                box-sizing: border-box !important;
+                overflow: visible !important;
+            }
+
+            /* 各ページのスタイル */
+            .print-page {
+                padding: 10mm 12mm !important;  /* 上下10mm、左右12mm */
+            }
+
+            /* テーブルがはみ出さないように */
+            .print-content table,
+            .print-page table {
+                width: 100% !important;
+                max-width: 100% !important;
+                table-layout: fixed !important;
+            }
+
+            /* 集計表は科目名の幅を自動調整 + 背景色を強制印刷 */
+            .enrollment-tally-print {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                page: tally;
+                padding: 0 !important;
+            }
+            @page tally {
+                margin: 10mm 12mm;
+            }
+            .enrollment-tally-print table {
+                table-layout: auto !important;
+            }
+
+            /* 確認モーダル: viewport依存プロパティの印刷時レイアウトシフト防止 */
+            #confirmation-modal .confirmation-content {
+                max-height: none !important;
+            }
+        }
+    </style>
+
+<!-- Staff management styles -->
+            <style>
+                /* 非編集セル: input/selectへのクリックを貫通させる */
+                #staff-management-list input,
+                #staff-management-list select {
+                    border: 1px solid transparent;
+                    border-radius: 0;
+                    background: transparent;
+                    outline: none;
+                    pointer-events: none;
+                    user-select: none;
+                }
+                #staff-management-list select {
+                    -webkit-appearance: none;
+                    -moz-appearance: none;
+                    appearance: none;
+                }
+                /* 編集中セル: 通常のinput操作を復活 */
+                #staff-management-list td.staff-cell-editing input,
+                #staff-management-list td.staff-cell-editing select {
+                    pointer-events: auto;
+                    user-select: auto;
+                    border-color: transparent;
+                    background: #f0f6ff;
+                }
+                #staff-management-list td.staff-cell-editing {
+                    background: #f0f6ff;
+                }
+                /* 選択ハイライト（box-shadowはJS側でインライン設定） */
+                #staff-management-list td.staff-cell-selected {
+                    position: relative;
+                    z-index: 1;
+                }
+                #staff-management-list td.staff-cell-selected input,
+                #staff-management-list td.staff-cell-selected select {
+                    background-color: transparent !important;
+                }
+                /* コンテキストメニュー項目のホバー */
+                .staff-ctx-item:hover {
+                    background-color: #f0f0f0;
+                }
+                /* マーチングアンツ（コピー/切り取り範囲の動く破線枠） */
+                @keyframes staff-march {
+                    from { background-position: 0 0, 0 100%, 0 0, 100% 0; }
+                    to { background-position: 10px 0, -10px 100%, 0 -10px, 100% 10px; }
+                }
+                .staff-cell-clipboard {
+                    animation: staff-march 0.4s linear infinite !important;
+                    position: relative;
+                    z-index: 1;
+                }
+                /* ヘッダー行を上端に固定 */
+                #staff-management-list thead th {
+                    position: sticky;
+                    top: 0;
+                    z-index: 4;
+                    background: linear-gradient(135deg, #e3f2fd 0%, #f1f8ff 100%);
+                    box-shadow: 0 1px 0 #dee2e6;
+                }
+            </style>
+
+<!-- Student management styles -->
+            <style>
+                /* 非編集セル: input/selectへのクリックを貫通させる */
+                #student-management-list input,
+                #student-management-list select {
+                    border: 1px solid transparent;
+                    border-radius: 0;
+                    background: transparent;
+                    outline: none;
+                    pointer-events: none;
+                    user-select: none;
+                }
+                #student-management-list select {
+                    -webkit-appearance: none;
+                    -moz-appearance: none;
+                    appearance: none;
+                }
+                /* 編集中セル: 通常のinput操作を復活 */
+                #student-management-list td.student-cell-editing input,
+                #student-management-list td.student-cell-editing select {
+                    pointer-events: auto;
+                    user-select: auto;
+                    border-color: transparent;
+                    background: #f0f6ff;
+                }
+                #student-management-list td.student-cell-editing {
+                    background: #f0f6ff;
+                }
+                /* 選択ハイライト（box-shadowはJS側でインライン設定） */
+                #student-management-list td.student-cell-selected {
+                    position: relative;
+                    z-index: 1;
+                }
+                #student-management-list td.student-cell-selected input,
+                #student-management-list td.student-cell-selected select {
+                    background-color: transparent !important;
+                }
+                /* コンテキストメニュー項目のホバー */
+                .student-ctx-item:hover {
+                    background-color: #f0f0f0;
+                }
+                /* マーチングアンツ（コピー/切り取り範囲の動く破線枠） */
+                @keyframes student-march {
+                    from { background-position: 0 0, 0 100%, 0 0, 100% 0; }
+                    to { background-position: 10px 0, -10px 100%, 0 -10px, 100% 10px; }
+                }
+                .student-cell-clipboard {
+                    animation: student-march 0.4s linear infinite !important;
+                    position: relative;
+                    z-index: 1;
+                }
+                /* 科目列展開時: ヘッダー行を上端に固定 */
+                #student-management-list thead th {
+                    position: sticky;
+                    top: 0;
+                    z-index: 4;
+                    background: linear-gradient(135deg, #e3f2fd 0%, #f1f8ff 100%);
+                    box-shadow: 0 1px 0 #dee2e6;
+                }
+            </style>

@@ -1,0 +1,1342 @@
+    <!-- 全画面読み込みオーバーレイ -->
+    <div id="loading-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 10000; display: flex; align-items: center; justify-content: center;">
+        <div style="text-align: center;">
+            <div id="loading-screen-content">
+                <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #004294; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <p id="loading-screen-message" style="margin-top: 15px; color: #666;">読み込み中...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+    
+    <!-- 科目選択制限バナー -->
+    <div id="restriction-banner" class="restriction-banner">
+        <div id="restriction-message"></div>
+        <button class="close-btn" onclick="this.parentElement.classList.remove('show')">&times;</button>
+    </div>
+
+    <!-- 登録状態制限バナー -->
+    <div id="registration-status-banner" class="registration-status-banner">
+        <div id="registration-status-message"></div>
+    </div>
+
+    <!-- 仮登録確認モーダル -->
+    <div id="submit-confirmation-modal" class="submit-confirmation-modal">
+        <div class="submit-confirmation-content">
+            <h3>仮登録の確認</h3>
+            <div id="submit-confirmation-user-info"></div>
+            <div id="submit-confirmation-tables-container"></div>
+            <p>履修登録を仮登録しますか？<br>仮登録後は科目の変更ができなくなります。</p>
+            <div class="submit-confirmation-buttons">
+                <button id="submit-cancel-btn" class="save-button-in-summary" style="background-color: #6c757d;">キャンセル</button>
+                <button id="submit-confirm-btn" class="save-button-in-summary">仮登録</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 卒業要件不足モーダル -->
+    <div id="graduation-requirement-modal" class="submit-confirmation-modal">
+        <div class="submit-confirmation-content">
+            <h3 style="color: #dc3545;">⚠ 卒業要件を満たしていません</h3>
+            <div id="graduation-requirement-modal-content" style="margin: 15px 0; padding: 10px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px;"></div>
+            <p>卒業要件を満たすまで仮登録できません。<br>科目を選択してください。</p>
+            <div class="submit-confirmation-buttons">
+                <button id="graduation-requirement-modal-close" class="save-button-in-summary" style="background-color: #6c757d;">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 処理中モーダル -->
+    <div id="processing-modal" class="submit-confirmation-modal" style="z-index: 25000;">
+        <div class="submit-confirmation-content" style="text-align: center;">
+            <h3>処理中</h3>
+            <p>履修登録を処理しています...<br>しばらくお待ちください。</p>
+            <div style="margin: 20px 0;">
+                <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <header class="header-area">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;">
+                <div id="school-name-header" style="text-align: left; font-size: 0.8em; color: var(--text-secondary-color);"></div>
+                <div style="display: flex; align-items: center; gap: 4px; min-width: 0; flex-shrink: 1;">
+                    <div id="account-info" style="text-align: right; font-size: 0.8em; color: var(--text-secondary-color); display: none; line-height: 1;"></div>
+                    <button id="share-url-btn" style="display: none; background: none; border: none; cursor: pointer; padding: 2px;" title="URLを共有">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                            <polyline points="16 6 12 2 8 6"></polyline>
+                            <line x1="12" y1="2" x2="12" y2="15"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0; border-bottom: 2px solid var(--primary-color); padding-bottom: 5px; flex-wrap: wrap; gap: 5px;">
+                <div class="main-title-container">
+                    <h1>履修登録</h1>
+                </div>
+                <div style="display: flex; gap: 5px; flex-wrap: wrap; align-items: center;">
+                    <button id="teacher-mode-btn" style="display: none; background-color: var(--primary-color); font-size: 0.9em; padding: 8px 16px;">教職員専用画面</button>
+                    <button id="admin-mode-btn" style="display: none; background-color: var(--primary-color); font-size: 0.9em; padding: 8px 16px;">管理画面</button>
+                </div>
+            </div>
+            <div id="provisional-registration-banner" style="display: none; position: fixed; top: 0; left: 0; right: 0; background-color: #ff8c42; color: white; text-align: center; padding: 10px 15px; font-weight: bold; z-index: 500; box-shadow: 0 2px 10px rgba(0,0,0,0.3);">
+                仮登録期間ではありません
+            </div>
+            <div id="maintenance-mode-banner" style="display: none; position: fixed; top: 0; left: 0; right: 0; background-color: #ff8c42; color: white; text-align: center; padding: 10px 15px; font-weight: bold; z-index: 600; box-shadow: 0 2px 10px rgba(0,0,0,0.3);">
+                メンテナンスモード有効中
+            </div>
+        </header>
+
+        <section class="summary-area">
+            <div class="total-units-display">
+                <span class="user-info-in-summary" id="user-info-in-summary"></span>
+                <span class="units-info">登録: <span id="total-units-value">0</span> / 30 単位</span>
+            </div>
+            <div class="yearly-progress-container">
+                <div class="progress-bar-wrapper">
+                    <span class="progress-bar-label">1年生</span>
+                    <div class="progress-bar" id="progress-bar-year1">
+                        <div class="progress-bar-segment completed"></div>
+                        <div class="progress-bar-segment currently-enrolled"></div>
+                        <div class="progress-bar-segment retaken-required"></div>
+                        <div class="progress-bar-segment required"></div>
+                        <div class="progress-bar-segment required-designated"></div>
+                        <div class="progress-bar-segment elective"></div>
+                    </div>
+                    <span class="progress-bar-value" id="year1-units-value">0単位</span>
+                </div>
+                <div class="progress-bar-wrapper">
+                    <span class="progress-bar-label">2年生</span>
+                    <div class="progress-bar" id="progress-bar-year2">
+                        <div class="progress-bar-segment completed"></div>
+                        <div class="progress-bar-segment currently-enrolled"></div>
+                        <div class="progress-bar-segment retaken-required"></div>
+                        <div class="progress-bar-segment required"></div>
+                        <div class="progress-bar-segment required-designated"></div>
+                        <div class="progress-bar-segment elective"></div>
+                    </div>
+                    <span class="progress-bar-value" id="year2-units-value">0単位</span>
+                </div>
+                <div class="progress-bar-wrapper">
+                    <span class="progress-bar-label">3年生</span>
+                    <div class="progress-bar" id="progress-bar-year3">
+                        <div class="progress-bar-segment completed"></div>
+                        <div class="progress-bar-segment currently-enrolled"></div>
+                        <div class="progress-bar-segment retaken-required"></div>
+                        <div class="progress-bar-segment required"></div>
+                        <div class="progress-bar-segment required-designated"></div>
+                        <div class="progress-bar-segment elective"></div>
+                    </div>
+                    <span class="progress-bar-value" id="year3-units-value">0単位</span>
+                </div>
+                <div class="grand-total-units">
+                    <div></div>
+                    <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                        <button id="save-draft-button" class="save-button-in-summary save-draft-btn is-disabled">一時保存</button>
+                        <button id="save-button" class="save-button-in-summary" disabled>確認</button>
+                    </div>
+                    <div style="text-align: right; font-size: 1.1em; font-weight: bold;">計: <span id="grand-total-units-value">0</span>単位</div>
+                </div>
+            </div>
+        </section>
+
+        <div class="course-filter-toggle-container" id="course-filter-container">
+            <span class="toggle-label">選択可能な科目のみ表示</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="course-filter-toggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+
+        <div id="registration-form-container"></div>
+    </div>
+
+    <!-- 教員専用画面 -->
+    <div id="teacher-screen" style="display: none; width: 100%; height: 100vh; background-color: var(--bg-color); margin: 0; padding: 0; box-sizing: border-box; position: fixed; top: 0; left: 0; z-index: 100; overflow: hidden;">
+        <div class="teacher-container" style="max-width: 1140px; margin: 0 auto; display: flex; gap: 20px; padding: 15px; height: 100vh; box-sizing: border-box;">
+
+            <!-- 左側：生徒一覧 -->
+            <div style="width: 280px; flex-shrink: 0; background-color: #f8f9fa; border-right: 1px solid var(--border-color); padding: 12px 12px 4px 12px; display: flex; flex-direction: column; box-shadow: 2px 0 10px rgba(0,0,0,0.1); border-radius: 10px;">
+
+            <div style="margin-bottom: 10px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;">
+                <h4 style="margin: 0; color: var(--primary-color); font-size: 1.1em; font-weight: 600;">生徒一覧</h4>
+                <button id="teacher-refresh-btn" style="background-color: #6c757d; color: white; font-size: 0.9em; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    </svg>
+                </button>
+            </div>
+            <input type="text" id="teacher-student-search" autocomplete="off" placeholder="学年-組-番号 または 名前で検索" style="width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 0.9em; box-sizing: border-box; flex-shrink: 0;">
+            <div id="teacher-student-list-container" style="flex: 1; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 5px; background-color: white; min-height: 0; max-height: calc(100vh - 145px);">
+                <div id="teacher-loading-message" style="padding: 20px; text-align: center; color: #6c757d; display: none;">
+                    <div style="display: inline-block; width: 32px; height: 32px; border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <p style="margin-top: 10px; color: #666; font-size: 0.85em;">読み込み中...</p>
+                </div>
+                <div id="teacher-student-list-items" style="padding: 0;">
+                    <!-- 生徒リストアイテムがここに動的に追加されます -->
+                </div>
+            </div>
+
+        </div>
+
+            <!-- 右側：教職員専用画面コンテンツ -->
+            <div id="teacher-detail-right-pane" style="flex: 1; overflow-y: auto; padding: 0; position: relative;">
+            <div class="container" style="margin-top: 0; max-width: none; overflow: visible;">
+                <!-- ヘッダー部分 -->
+                <header class="header-area">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;">
+                        <div id="school-name-teacher" style="text-align: left; font-size: 0.8em; color: var(--text-secondary-color);"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0; border-bottom: 2px solid var(--primary-color); padding-bottom: 5px; flex-wrap: wrap; gap: 5px;">
+                        <h1 id="teacher-screen-title" style="margin: 0; color: var(--primary-color);">教職員専用画面</h1>
+                        <button id="back-to-student-btn" style="background-color: #6c757d; color: white; font-size: 0.9em; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer;">トップページに戻る</button>
+                    </div>
+                </header>
+
+                <!-- 詳細表示エリア -->
+                <div id="teacher-student-detail-area" style="background-color: white; padding: 0; min-height: calc(100vh - 200px);">
+                    <div id="teacher-no-student-selected" style="text-align: center; padding: 100px 0; color: var(--text-secondary-color); font-size: 1.1em;">
+                        左側の生徒一覧から生徒を選択してください
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+
+    </div>
+    
+    <!-- 確認モーダル -->
+    <div id="confirmation-modal" class="confirmation-modal">
+        <div class="confirmation-content">
+            <h2 style="border-bottom: 2px solid var(--primary-color); padding-bottom: 5px;">履修登録内容の確認</h2>
+            <div id="confirmation-user-info"></div>
+            <div id="confirmation-tables-container"></div>
+            <div class="confirmation-buttons">
+                <button class="btn-cancel" id="btn-cancel">戻る</button>
+                <button class="btn-pdf" id="btn-pdf">印刷</button>
+                <button class="btn-confirm" id="btn-confirm">仮登録</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 科目別履修者集計モーダル -->
+    <div id="enrollment-tally-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 95%; max-width: 1200px; height: 85vh; display: flex; flex-direction: column; overflow-y: hidden;">
+            <h2 style="border-bottom: 2px solid #004294; padding-bottom: 10px; margin-bottom: 15px; color: #004294; flex-shrink: 0;">科目別履修者集計</h2>
+            <div id="enrollment-tally-info" style="font-size: 0.9em; color: #333; margin-bottom: 15px; flex-shrink: 0;"></div>
+            <div id="enrollment-tally-result" style="flex: 1; overflow-y: auto; overflow-x: auto; min-height: 0;"></div>
+            <div style="display: flex; gap: 10px; justify-content: center; border-top: 1px solid #dee2e6; margin-top: 15px; padding-top: 15px; flex-shrink: 0;">
+                <button onclick="EnrollmentTally.closeModal()" style="background-color: #6c757d; color: white; font-size: 14px; padding: 10px 12px; border: none; border-radius: 5px; cursor: pointer;">閉じる</button>
+                <button onclick="EnrollmentTally.printTally()" style="background-color: #004294; color: white; font-size: 14px; padding: 10px 12px; border: none; border-radius: 5px; cursor: pointer;">印刷</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 科目別履修者一覧モーダル -->
+    <div id="enrollment-tally-students-modal" class="modal" style="display: none; z-index: 20001;">
+        <div class="modal-content" style="width: 80%; max-width: 500px; max-height: 80vh; display: flex; flex-direction: column;">
+            <h2 id="enrollment-tally-students-title" style="border-bottom: 2px solid #004294; padding-bottom: 10px; margin-bottom: 15px; color: #004294; flex-shrink: 0;">科目名</h2>
+            <div id="enrollment-tally-students-info" style="font-size: 0.9em; color: #333; margin-bottom: 10px; flex-shrink: 0;"></div>
+            <div id="enrollment-tally-students-list" style="flex: 1; overflow-y: auto; min-height: 0;"></div>
+            <div style="text-align: center; border-top: 1px solid #dee2e6; margin-top: 15px; padding-top: 15px; flex-shrink: 0;">
+                <button onclick="EnrollmentTally.closeStudentsModal()" style="background-color: #6c757d; color: white; font-size: 14px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SM取り込み設定モーダル -->
+    <div id="sm-settings-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 95%; max-width: 900px; height: 85vh; display: flex; flex-direction: column; overflow-y: hidden;">
+            <h2 style="border-bottom: 2px solid #004294; padding-bottom: 10px; margin-bottom: 15px; color: #004294; flex-shrink: 0;">SM取り込み設定 — クラスグループ編集</h2>
+            <div id="sm-settings-content" style="flex: 1; overflow-y: auto; min-height: 0;"></div>
+            <div style="text-align: right; border-top: 1px solid #dee2e6; margin-top: 15px; padding-top: 15px; flex-shrink: 0;">
+                <button onclick="SMExporter.closeSettingsModal()" style="background-color: #6c757d; color: white; font-size: 14px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">キャンセル</button>
+                <button onclick="SMExporter.saveSettings()" style="background-color: #004294; color: white; font-size: 14px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 教科書設定モーダル -->
+    <div id="textbook-settings-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 95%; max-width: 900px; height: 85vh; display: flex; flex-direction: column; overflow-y: hidden;">
+            <h2 style="border-bottom: 2px solid #004294; padding-bottom: 10px; margin-bottom: 15px; color: #004294; flex-shrink: 0;">教科書設定 — 商品コード編集</h2>
+            <div id="textbook-settings-content" style="flex: 1; overflow-y: auto; min-height: 0;"></div>
+            <div style="text-align: right; border-top: 1px solid #dee2e6; margin-top: 15px; padding-top: 15px; flex-shrink: 0;">
+                <button onclick="TextbookExporter.closeSettingsModal()" style="background-color: #6c757d; color: white; font-size: 14px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">キャンセル</button>
+                <button onclick="TextbookExporter.saveSettings()" style="background-color: #004294; color: white; font-size: 14px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- レポート設定モーダル -->
+    <div id="report-settings-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 95%; max-width: 900px; height: 85vh; display: flex; flex-direction: column; overflow-y: hidden;">
+            <h2 style="border-bottom: 2px solid #004294; padding-bottom: 10px; margin-bottom: 15px; color: #004294; flex-shrink: 0;">レポート設定 — 科目コード編集</h2>
+            <div id="report-settings-content" style="flex: 1; overflow-y: auto; min-height: 0;"></div>
+            <div style="text-align: right; border-top: 1px solid #dee2e6; margin-top: 15px; padding-top: 15px; flex-shrink: 0;">
+                <button onclick="ReportExporter.closeSettingsModal()" style="background-color: #6c757d; color: white; font-size: 14px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">キャンセル</button>
+                <button onclick="ReportExporter.saveSettings()" style="background-color: #004294; color: white; font-size: 14px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- URL共有モーダル -->
+    <div id="share-url-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 90%; max-width: 420px;">
+            <h2 style="border-bottom: 2px solid #004294; padding-bottom: 10px; margin-bottom: 15px; color: #004294;">URLを共有</h2>
+            <!-- タブ（生徒用ドメイン設定時のみ表示） -->
+            <div id="share-url-toggle" style="display: none; justify-content: center; margin-bottom: 15px;">
+                <div style="display: inline-flex; border: 1px solid #dee2e6; border-radius: 6px; overflow: hidden;">
+                    <button type="button" data-share-mode="student" style="padding: 6px 16px; border: none; cursor: pointer; font-size: 0.85em; background-color: #007bff; color: white;">生徒用</button>
+                    <button type="button" data-share-mode="teacher" style="padding: 6px 16px; border: none; cursor: pointer; font-size: 0.85em; background-color: #f8f9fa; color: #333;">教員用</button>
+                </div>
+            </div>
+            <!-- QRコード -->
+            <div id="share-qr-code" style="display: flex; justify-content: center; margin-bottom: 15px;"></div>
+            <!-- URLテキストボックス＋コピーボタン -->
+            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 20px;">
+                <input type="text" id="share-url-text" readonly style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85em; background-color: #f8f9fa; color: #333;">
+                <button id="share-copy-btn" type="button" style="background: none; border: 1px solid #ddd; border-radius: 4px; padding: 6px 8px; cursor: pointer;" title="URLをコピー">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </button>
+            </div>
+            <div style="text-align: center;">
+                <button id="share-close-btn" style="background-color: #6c757d; color: white; font-size: 14px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 設定編集モーダル -->
+    <div id="settings-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 80%; max-width: 800px;">
+            <h2 style="border-bottom: 2px solid #004294; padding-bottom: 10px; margin-bottom: 15px; color: #004294;">
+                システム設定
+            </h2>
+            <form id="settings-form">
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">学校名</label>
+                    <input type="text" id="setting-school-name" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">本登録許可</label>
+                    <div>
+                        <label style="margin-right: 20px;">
+                            <input type="radio" name="final-approval" value="可"> 可
+                        </label>
+                        <label>
+                            <input type="radio" name="final-approval" value="不可"> 不可
+                        </label>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">仮登録</label>
+                    <div>
+                        <label style="margin-right: 20px;">
+                            <input type="radio" name="provisional-registration" value="可"> 可
+                        </label>
+                        <label>
+                            <input type="radio" name="provisional-registration" value="不可"> 不可
+                        </label>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">一時保存</label>
+                    <div>
+                        <label style="margin-right: 20px;">
+                            <input type="radio" name="save-draft" value="可"> 可
+                        </label>
+                        <label>
+                            <input type="radio" name="save-draft" value="不可"> 不可
+                        </label>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px; border: 2px solid #004294; border-radius: 8px; padding: 15px; background: #eff6ff;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #004294;">メンテナンスモード</label>
+                    <p style="font-size: 0.85em; color: #666; margin: 0 0 8px 0;">アクセスを制限するレベルを選択します。制限中のユーザーにはメンテナンス画面が表示されます。</p>
+                    <div>
+                        <label style="margin-right: 20px;">
+                            <input type="radio" name="maintenance-mode" value="無効"> 無効
+                        </label>
+                        <label style="margin-right: 20px;">
+                            <input type="radio" name="maintenance-mode" value="教員以上"> 有効（教職員は起動可）
+                        </label>
+                        <label>
+                            <input type="radio" name="maintenance-mode" value="管理者のみ"> 有効（管理者のみ起動可）
+                        </label>
+                    </div>
+                </div>
+
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">1年最低単位数</label>
+                    <input type="number" id="setting-year1-min-units" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" min="0">
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">2年最低単位数</label>
+                    <input type="number" id="setting-year2-min-units" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" min="0">
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">3年最低単位数</label>
+                    <input type="number" id="setting-year3-min-units" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" min="0">
+                </div>
+
+                <div style="margin-bottom: 20px; border: 2px solid #dc3545; border-radius: 8px; padding: 15px; background: #fff5f5;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #dc3545;">生徒への表示</label>
+                    <p style="font-size: 0.85em; color: #666; margin: 0 0 8px 0;">「学籍番号」にすると、生徒画面で組・番号の代わりに学籍番号が表示されます。次年度のクラス発表前に設定してください。</p>
+                    <div>
+                        <label style="margin-right: 20px;">
+                            <input type="radio" name="class-display" value="クラス"> クラス
+                        </label>
+                        <label>
+                            <input type="radio" name="class-display" value="学籍番号"> 学籍番号
+                        </label>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">生徒用ドメイン</label>
+                    <p style="font-size: 0.85em; color: #666; margin: 0 0 8px 0;">QRコード生成時に使用する生徒用Googleアカウントのドメインを設定します。（例: students.example.ac.jp）</p>
+                    <input type="text" id="setting-student-domain" placeholder="例: students.example.ac.jp" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button type="button" id="settings-cancel-btn" style="background-color: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                        キャンセル
+                    </button>
+                    <button type="submit" id="settings-save-btn" style="background-color: #004294; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                        保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 生徒別科目表示設定モーダル -->
+    <div id="student-ids-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 85%; max-width: 700px; height: 85vh; display: flex; flex-direction: column; overflow-y: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #004294; padding-bottom: 10px; margin-bottom: 15px; flex-shrink: 0;">
+                <h2 style="margin: 0; color: #004294;">生徒別科目表示設定</h2>
+                <div>
+                    <input type="file" id="student-ids-import-file" accept=".xlsx,.xls"
+                           onchange="StudentIdsManager.handleImportFile(event)" style="display:none;">
+                    <button onclick="document.getElementById('student-ids-import-file').click()"
+                            style="padding: 6px 14px; background-color: #198754; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px;">
+                        Excel取込
+                    </button>
+                </div>
+            </div>
+
+            <!-- タブ -->
+            <div id="student-ids-tabs" style="display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; align-items: center; flex-shrink: 0;">
+                <button class="student-ids-tab active" data-tab="抽選学籍番号"
+                        onclick="StudentIdsManager.switchTab('抽選学籍番号')"
+                        style="padding: 10px 20px; border: none; background: none; cursor: pointer; font-size: 0.95em; font-weight: bold; color: #004294; border-bottom: 3px solid #004294; margin-bottom: -2px;">
+                    抽選
+                </button>
+                <button class="student-ids-tab" data-tab="非表示学籍番号"
+                        onclick="StudentIdsManager.switchTab('非表示学籍番号')"
+                        style="padding: 10px 20px; border: none; background: none; cursor: pointer; font-size: 0.95em; font-weight: bold; color: #9ca3af; border-bottom: 3px solid transparent; margin-bottom: -2px;">
+                    非表示
+                </button>
+                <button class="student-ids-tab" data-tab="表示学籍番号"
+                        onclick="StudentIdsManager.switchTab('表示学籍番号')"
+                        style="padding: 10px 20px; border: none; background: none; cursor: pointer; font-size: 0.95em; font-weight: bold; color: #9ca3af; border-bottom: 3px solid transparent; margin-bottom: -2px;">
+                    表示
+                </button>
+                <div style="margin-left: auto; margin-bottom: -2px;">
+                    <input type="text" id="student-ids-reverse-input"
+                           placeholder="生徒で検索..."
+                           oninput="StudentIdsManager._onReverseInput()"
+                           style="padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.85em; width: 160px; box-sizing: border-box;">
+                </div>
+            </div>
+
+            <!-- 科目選択 -->
+            <div style="margin-bottom: 20px; flex-shrink: 0;">
+                <label style="font-weight: bold; display: block; margin-bottom: 6px; color: #004294;">科目:</label>
+                <select id="student-ids-course-select" onchange="StudentIdsManager.onCourseSelect()"
+                        style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95em;">
+                    <option value="">-- 科目を選択 --</option>
+                </select>
+            </div>
+
+            <!-- 現在の対象者リスト -->
+            <div style="flex: 1; min-height: 0; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-shrink: 0;">
+                    <label style="font-weight: bold; color: #004294;">現在の対象者:</label>
+                    <span id="student-ids-count" style="font-size: 0.85em; color: #004294;">（0名）</span>
+                </div>
+                <div id="student-ids-list" style="border: 1px solid #e5e7eb; border-radius: 8px; min-height: 0; flex: 1; overflow-y: auto; background: #f9fafb;">
+                    <div style="padding: 20px; text-align: center; color: #9ca3af; font-size: 0.9em;">科目を選択してください</div>
+                </div>
+            </div>
+
+            <!-- 生徒追加 -->
+            <div id="student-ids-add-section" style="margin-bottom: 20px; display: none; flex-shrink: 0;">
+                <label style="font-weight: bold; display: block; margin-bottom: 8px; color: #004294;">生徒追加:</label>
+                <input type="text" id="student-ids-search-input" placeholder="学年-組 または名前で検索..."
+                       oninput="StudentIdsManager._updateSearchResults()"
+                       style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9em; box-sizing: border-box;">
+                <div id="student-ids-search-results" style="border: 1px solid #e5e7eb; border-radius: 6px; margin-top: 8px; display: none; background: #fff; max-height: 240px; overflow-y: auto;"></div>
+            </div>
+
+            <!-- Excel取込 確認画面（初期非表示） -->
+            <div id="student-ids-import-confirm" style="display: none; flex-shrink: 0;">
+                <div id="student-ids-import-summary" style="margin-bottom: 16px; padding: 12px 16px; background: #e8f5e9; border-radius: 8px; font-weight: bold; font-size: 0.95em;"></div>
+                <div id="student-ids-import-details" style="margin-bottom: 16px; max-height: 300px; overflow-y: auto;"></div>
+                <div id="student-ids-import-warnings" style="margin-bottom: 16px;"></div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button onclick="StudentIdsManager.cancelImport()"
+                            style="padding: 10px 24px; background-color: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                        キャンセル
+                    </button>
+                    <button id="student-ids-import-execute-btn" onclick="StudentIdsManager.executeImport()"
+                            style="padding: 10px 24px; background-color: #198754; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                        取込実行
+                    </button>
+                </div>
+            </div>
+
+            <!-- ボタン -->
+            <div id="student-ids-button-row" style="display: flex; gap: 10px; justify-content: center; border-top: 1px solid #e5e7eb; padding-top: 16px; flex-shrink: 0;">
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="StudentIdsManager.closeModal()"
+                            style="padding: 10px 24px; background-color: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                        キャンセル
+                    </button>
+                    <button id="student-ids-save-btn" onclick="StudentIdsManager.save()"
+                            style="padding: 10px 24px; background-color: #004294; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                        保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 科目データ管理モーダル -->
+    <div id="course-management-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 90%; max-width: 700px; height: 85vh; display: flex; flex-direction: column; overflow-y: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #004294; padding-bottom: 10px; margin-bottom: 15px; flex-shrink: 0;">
+                <h2 style="margin: 0; color: #004294;">科目データ管理</h2>
+                <button onclick="CourseManager.showAddForm()"
+                        style="background-color: #004294; color: white; font-size: 14px; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer;">
+                    科目を追加
+                </button>
+            </div>
+            <div id="course-management-list" style="flex: 1; overflow-y: auto; min-height: 0;"></div>
+            <div style="display: flex; gap: 10px; justify-content: center; border-top: 1px solid #dee2e6; margin-top: 15px; padding-top: 15px; flex-shrink: 0;">
+                <button onclick="CourseManager.closeModal()"
+                        style="background-color: #6c757d; color: white; font-size: 14px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 科目追加/編集モーダル -->
+    <div id="course-edit-modal" class="modal" style="display: none; z-index: 20001;">
+        <div class="modal-content" style="width: 90%; max-width: 550px; max-height: 75vh; display: flex; flex-direction: column; overflow: hidden;">
+            <h2 id="course-edit-title" style="margin: 0 0 15px 0; color: #004294; border-bottom: 2px solid #004294; padding-bottom: 10px; flex-shrink: 0;">科目を追加</h2>
+            <form id="course-edit-form" onsubmit="CourseManager.saveCourse(event); return false;" style="display: flex; flex-direction: column; min-height: 0; flex: 1;">
+                <div style="flex: 1; overflow-y: auto; min-height: 0;">
+                    <div style="display: grid; gap: 14px;">
+                        <div>
+                            <label style="font-weight: bold; display: block; margin-bottom: 4px;">科目名 <span style="color: #dc3545;">*</span></label>
+                            <input type="text" id="course-edit-name" required
+                                   style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95em; box-sizing: border-box;">
+                        </div>
+                        <div>
+                            <label style="font-weight: bold; display: block; margin-bottom: 4px;">詳細</label>
+                            <input type="text" id="course-edit-detail"
+                                   style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95em; box-sizing: border-box;">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+                            <div>
+                                <label style="font-weight: bold; display: block; margin-bottom: 4px;">学年</label>
+                                <select id="course-edit-grade"
+                                        style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95em; box-sizing: border-box;">
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="プロ">プロ</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-weight: bold; display: block; margin-bottom: 4px;">区分</label>
+                                <select id="course-edit-category"
+                                        style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95em; box-sizing: border-box;">
+                                    <option value="必修">必修</option>
+                                    <option value="履修指定">履修指定</option>
+                                    <option value="選択必修-履修指定">選択必修-履修指定</option>
+                                    <option value="選択必修-選択">選択必修-選択</option>
+                                    <option value="選択">選択</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-weight: bold; display: block; margin-bottom: 4px;">単位数</label>
+                                <input type="number" id="course-edit-units" min="0" max="20" value="1"
+                                       style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95em; box-sizing: border-box;">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-weight: bold; display: block; margin-bottom: 4px;">セクション</label>
+                            <select id="course-edit-section-select"
+                                    style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95em; box-sizing: border-box;">
+                                <option value="">選択...</option>
+                                <option value="__new__">+ 新しいセクションを追加</option>
+                            </select>
+                            <input type="text" id="course-edit-section" placeholder="新しいセクション名を入力"
+                                   style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95em; box-sizing: border-box; margin-top: 6px; display: none;">
+                        </div>
+                        <div>
+                            <label style="font-weight: bold; display: block; margin-bottom: 4px;">選択可能学年</label>
+                            <div id="course-edit-selectable-grades" style="display: flex; gap: 16px; padding: 8px 0;">
+                                <label style="font-weight: normal; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="checkbox" class="selectable-grade-cb" value="1"> 1年
+                                </label>
+                                <label style="font-weight: normal; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="checkbox" class="selectable-grade-cb" value="2"> 2年
+                                </label>
+                                <label style="font-weight: normal; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="checkbox" class="selectable-grade-cb" value="3"> 3年
+                                </label>
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-weight: bold; display: block; margin-bottom: 4px;">階段（前提科目）</label>
+                            <select id="course-edit-staircase-select"
+                                    style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95em; box-sizing: border-box; color: #6b7280;">
+                                <option value="">科目を選択して追加...</option>
+                            </select>
+                            <div id="staircase-tags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;"></div>
+                        </div>
+                        <div>
+                            <label style="font-weight: bold; display: block; margin-bottom: 4px;">同時不可（グループ名）</label>
+                            <select id="course-edit-exclusive-select"
+                                    style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95em; box-sizing: border-box;">
+                                <option value="">なし</option>
+                                <option value="__new__">+ 新しいグループを追加</option>
+                            </select>
+                            <input type="text" id="course-edit-exclusive" placeholder="新しいグループ名を入力"
+                                   style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95em; box-sizing: border-box; margin-top: 6px; display: none;">
+                        </div>
+                        <div>
+                            <label style="font-weight: bold; display: block; margin-bottom: 4px;">教科</label>
+                            <input type="text" id="course-edit-subject"
+                                   style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95em; box-sizing: border-box;">
+                        </div>
+                        <div>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="course-edit-closed"
+                                       style="width: 18px; height: 18px; cursor: pointer;">
+                                <span style="font-weight: bold;">開講なし</span>
+                            </label>
+                        </div>
+                    </div>
+                    <!-- 削除リンク（編集時のみ表示、スクロール内の最下部） -->
+                    <div id="course-edit-delete-btn" style="margin-top: 40px; text-align: center; display: none;">
+                        <button type="button" onclick="CourseManager.deleteCourseFromEdit()"
+                                style="background: none; border: none; color: #dc3545; font-size: 13px; cursor: pointer; text-decoration: underline;">
+                            この科目を削除
+                        </button>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center; border-top: 1px solid #dee2e6; padding-top: 15px; margin-top: 15px; flex-shrink: 0;">
+                    <button type="button" onclick="CourseManager.closeEditForm()"
+                            style="background-color: #6c757d; color: white; font-size: 14px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+                        キャンセル
+                    </button>
+                    <button type="submit" id="course-edit-save-btn"
+                            style="background-color: #004294; color: white; font-size: 14px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+                        保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 教職員データ管理モーダル -->
+    <div id="staff-management-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 90%; max-width: 850px; height: 92vh; display: flex; flex-direction: column; overflow-y: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #004294; padding-bottom: 10px; margin-bottom: 15px; flex-shrink: 0;">
+                <h2 style="margin: 0; color: #004294;">教職員データ管理</h2>
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="StaffManager.addRow()"
+                            style="background-color: #004294; color: white; font-size: 13px; padding: 7px 14px; border: none; border-radius: 5px; cursor: pointer;">
+                        + 行を追加
+                    </button>
+                </div>
+            </div>
+            <div id="staff-management-list" style="flex: 1; overflow-y: auto; min-height: 0;"></div>
+            <!-- 右クリックコンテキストメニュー -->
+            <div id="staff-context-menu" style="display: none; position: fixed; z-index: 10001; background: #fff; border: 1px solid #d0d0d0; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 4px 0; min-width: 180px; font-size: 13px;">
+                <div class="staff-ctx-item" data-action="undo" style="padding: 7px 16px; cursor: pointer;">元に戻す<span style="float: right; color: #999; font-size: 0.85em;">Ctrl+Z</span></div>
+                <div style="border-top: 1px solid #e0e0e0; margin: 4px 0;"></div>
+                <div class="staff-ctx-item" data-action="insert-above" style="padding: 7px 16px; cursor: pointer;">上に行を挿入</div>
+                <div class="staff-ctx-item" data-action="insert-below" style="padding: 7px 16px; cursor: pointer;">下に行を挿入</div>
+                <div style="border-top: 1px solid #e0e0e0; margin: 4px 0;"></div>
+                <div class="staff-ctx-item" data-action="copy" style="padding: 7px 16px; cursor: pointer;">コピー<span style="float: right; color: #999; font-size: 0.85em;">Ctrl+C</span></div>
+                <div class="staff-ctx-item" data-action="cut" style="padding: 7px 16px; cursor: pointer;">切り取り<span style="float: right; color: #999; font-size: 0.85em;">Ctrl+X</span></div>
+                <div class="staff-ctx-item" data-action="paste" style="padding: 7px 16px; cursor: pointer;">貼り付け<span style="float: right; color: #999; font-size: 0.85em;">Ctrl+V</span></div>
+                <div class="staff-ctx-item" data-action="paste-insert" style="padding: 7px 16px; cursor: pointer;">コピーしたセルを挿入</div>
+                <div class="staff-ctx-item" data-action="clear" style="padding: 7px 16px; cursor: pointer;">クリア</div>
+                <div style="border-top: 1px solid #e0e0e0; margin: 4px 0;"></div>
+                <div class="staff-ctx-item" data-action="delete-row" style="padding: 7px 16px; cursor: pointer; color: #dc3545;">行を削除</div>
+            </div>
+            <div style="display: flex; justify-content: center; align-items: center; border-top: 1px solid #dee2e6; margin-top: 15px; padding-top: 15px; flex-shrink: 0;">
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="StaffManager.closeModal()"
+                            style="background-color: #6c757d; color: white; font-size: 14px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+                        閉じる
+                    </button>
+                    <button id="staff-save-all-btn" onclick="StaffManager.saveAll()"
+                            disabled
+                            style="background-color: #004294; color: white; font-size: 14px; padding: 10px 20px; border: none; border-radius: 5px; cursor: default; opacity: 0.5;">
+                        保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 生徒データ管理モーダル -->
+    <div id="student-management-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 90%; max-width: 1050px; height: 92vh; display: flex; flex-direction: column; overflow-y: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #004294; padding-bottom: 10px; margin-bottom: 15px; flex-shrink: 0;">
+                <h2 style="margin: 0; color: #004294;">生徒データ管理</h2>
+                <div style="display: flex; gap: 8px;">
+<button onclick="document.getElementById('student-import-file').click()"
+                            style="background-color: #198754; color: white; font-size: 13px; padding: 7px 14px; border: none; border-radius: 5px; cursor: pointer;">
+                        Excel取込
+                    </button>
+                    <input type="file" id="student-import-file" accept=".xlsx,.xls,.csv"
+                           style="display: none;" onchange="StudentManager.handleImportFile(event)">
+                </div>
+            </div>
+            <div id="student-management-list" style="flex: 1; overflow-y: auto; min-height: 0;"></div>
+            <!-- 右クリックコンテキストメニュー -->
+            <div id="student-context-menu" style="display: none; position: fixed; z-index: 10001; background: #fff; border: 1px solid #d0d0d0; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 4px 0; min-width: 180px; font-size: 13px;">
+                <div class="student-ctx-item" data-action="undo" style="padding: 7px 16px; cursor: pointer;">元に戻す<span style="float: right; color: #999; font-size: 0.85em;">Ctrl+Z</span></div>
+                <div style="border-top: 1px solid #e0e0e0; margin: 4px 0;"></div>
+                <div class="student-ctx-item" data-action="insert-above" style="padding: 7px 16px; cursor: pointer;">上に行を挿入</div>
+                <div class="student-ctx-item" data-action="insert-below" style="padding: 7px 16px; cursor: pointer;">下に行を挿入</div>
+                <div style="border-top: 1px solid #e0e0e0; margin: 4px 0;"></div>
+                <div class="student-ctx-item" data-action="copy" style="padding: 7px 16px; cursor: pointer;">コピー<span style="float: right; color: #999; font-size: 0.85em;">Ctrl+C</span></div>
+                <div class="student-ctx-item" data-action="cut" style="padding: 7px 16px; cursor: pointer;">切り取り<span style="float: right; color: #999; font-size: 0.85em;">Ctrl+X</span></div>
+                <div class="student-ctx-item" data-action="paste" style="padding: 7px 16px; cursor: pointer;">貼り付け<span style="float: right; color: #999; font-size: 0.85em;">Ctrl+V</span></div>
+                <div class="student-ctx-item" data-action="paste-insert" style="padding: 7px 16px; cursor: pointer;">コピーしたセルを挿入</div>
+                <div class="student-ctx-item" data-action="clear" style="padding: 7px 16px; cursor: pointer;">クリア</div>
+                <div style="border-top: 1px solid #e0e0e0; margin: 4px 0;"></div>
+                <div class="student-ctx-item" data-action="delete-row" style="padding: 7px 16px; cursor: pointer; color: #dc3545;">行を削除</div>
+            </div>
+            <div style="display: flex; justify-content: center; align-items: center; border-top: 1px solid #dee2e6; margin-top: 15px; padding-top: 15px; flex-shrink: 0;">
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="StudentManager.closeModal()"
+                            style="background-color: #6c757d; color: white; font-size: 14px; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+                        閉じる
+                    </button>
+                    <button id="student-save-all-btn" onclick="StudentManager.saveAll()"
+                            disabled
+                            style="background-color: #004294; color: white; font-size: 14px; padding: 10px 20px; border: none; border-radius: 5px; cursor: default; opacity: 0.5;">
+                        保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 教務専用画面 -->
+    <div id="admin-screen" class="container" style="display: none;">
+        <header class="header-area">
+            <div id="school-name-admin" style="text-align: left; font-size: 0.8em; color: var(--text-secondary-color); margin-bottom: 0;"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0; border-bottom: 2px solid var(--primary-color); padding-bottom: 5px;">
+                <h1 style="margin: 0;">管理画面</h1>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <!-- 新クラスExcel読込（管理者のみ表示） -->
+                    <div id="new-class-header-controls" style="display: none; align-items: center; gap: 8px;">
+                        <input type="file" id="new-class-import-file" accept=".xlsx,.xls" style="display: none;"
+                               onchange="NewClassImporter.handleFileSelect(event)">
+                        <button id="new-class-import-btn" onclick="document.getElementById('new-class-import-file').click()"
+                                style="background-color: #004294; color: white; font-size: 0.85em; padding: 8px 14px; border: none; border-radius: 5px; cursor: pointer;">
+                            新クラスExcel読込
+                        </button>
+                    </div>
+                    <button id="back-to-top-btn" style="background-color: #6c757d; color: white; font-size: 0.9em; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer;">トップページに戻る</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 教務機能（教務・管理者ともに表示） -->
+        <section class="teacher-controls" style="background-color: var(--surface-color); padding: 20px; margin-bottom: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            <h3 style="color: #004294; margin: 0 0 15px 0; font-size: 1.5em; display: flex; align-items: center;">
+                教務機能
+                <!-- 新クラスモードトグル（管理者のみ表示） -->
+                <div id="new-class-toggle-wrapper" style="display: none; margin-left: auto; align-items: center; gap: 8px; font-size: 0.55em; font-weight: normal;">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="new-class-toggle" disabled
+                               onchange="NewClassImporter.toggleNewClass(this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span>新クラスモード</span>
+                    <span id="new-class-toggle-status" style="color: #6c757d;">OFF</span>
+                </div>
+            </h3>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+                <!-- 生徒提出確認 -->
+                <div style="background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border: 2px solid #004294; border-radius: 10px; padding: 20px;">
+                    <h4 id="card-title-approval" style="margin: 0 0 15px 0; color: #004294; font-size: 1.1em;">
+                        生徒提出確認
+                    </h4>
+                    <p style="font-size: 0.9em; color: var(--text-secondary-color); margin-bottom: 15px; line-height: 1.5;">
+                        生徒から提出された履修登録内容を確認し、教務承認を行います。<br>
+                        • 履修登録内容の確認・編集<br>
+                        • 本登録許可・差し戻し処理
+                    </p>
+                    <button id="goto-admin-approval-button" onclick="showAdminApprovalScreen()"
+                            style="width: 100%; background-color: #004294; color: white; font-size: 14px; padding: 10px 12px;">
+                        教務承認画面へ
+                    </button>
+                </div>
+
+                <!-- クラス別一括印刷 -->
+                <div style="background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border: 2px solid #004294; border-radius: 10px; padding: 20px;">
+                    <h4 id="card-title-bulk-print" style="margin: 0 0 15px 0; color: #004294; font-size: 1.1em;">
+                        クラス別一括印刷
+                    </h4>
+                    <div style="margin-bottom: 15px;">
+                        <label for="class-select" style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em;">対象クラス:</label>
+                        <select id="class-select" style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 14px;">
+                            <option value="">クラスを選択</option>
+                        </select>
+                    </div>
+                    <label style="display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 0.9em; cursor: pointer;">
+                        <input type="checkbox" id="stamp-checkbox" checked>
+                        確認用紙に押印欄を表示
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 0.9em; cursor: pointer;">
+                        <input type="checkbox" id="error-display-checkbox" checked>
+                        確認用紙にエラーを表示
+                    </label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                        <button id="bulk-print-draft-button" onclick="printBulkDocument('draft')"
+                                style="background-color: #004294; font-size: 14px; padding: 10px 12px;">
+                            記入用紙を印刷
+                        </button>
+                        <button id="bulk-print-submitted-button" onclick="printBulkDocument('submitted')"
+                                style="background-color: #004294; font-size: 14px; padding: 10px 12px;">
+                            確認用紙を印刷
+                        </button>
+                    </div>
+                    <div id="bulk-print-status" style="margin-top: 12px; font-size: 0.9em;"></div>
+                </div>
+
+                <!-- 科目別履修者集計 -->
+                <div style="background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border: 2px solid #004294; border-radius: 10px; padding: 20px;">
+                    <h4 id="card-title-enrollment-tally" style="margin: 0 0 15px 0; color: #004294; font-size: 1.1em;">
+                        科目別履修者集計
+                    </h4>
+                    <p style="font-size: 0.9em; color: var(--text-secondary-color); margin-bottom: 15px; line-height: 1.5;">
+                        各科目の履修者数を学年別に集計します。<br>
+                        再履修の生徒は別途カウントされます。
+                    </p>
+                    <div style="margin-bottom: 15px;">
+                        <label for="enrollment-tally-status-filter" style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em;">対象ステータス:</label>
+                        <select id="enrollment-tally-status-filter" style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 14px;">
+                            <option value="submitted">仮登録（本登録許可生徒も含む）</option>
+                            <option value="final">本登録のみ</option>
+                            <option value="all">すべて（仮登録〜本登録）</option>
+                        </select>
+                    </div>
+                    <div style="text-align: center;">
+                        <button onclick="EnrollmentTally.showTally()"
+                                style="background-color: #004294; color: white; font-size: 14px; padding: 10px 12px; border: none; border-radius: 5px; cursor: pointer;">
+                            集計を表示
+                        </button>
+                    </div>
+                </div>
+
+                <!-- キャッシュ管理 -->
+                <div style="background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border: 2px solid #004294; border-radius: 10px; padding: 20px;">
+                    <h4 style="margin: 0 0 15px 0; color: #004294; font-size: 1.1em;">
+                        キャッシュ管理
+                    </h4>
+                    <p style="font-size: 0.9em; color: var(--text-secondary-color); margin-bottom: 15px; line-height: 1.5;">
+                        スプレッドシートを直接変更した場合は必ずキャッシュを更新してください。
+                    </p>
+                    <button id="cache-refresh-button" onclick="refreshSystemCache()"
+                            style="width: 100%; background-color: #004294; color: white; font-size: 14px; padding: 10px 12px; border: none; border-radius: 5px; cursor: pointer;">
+                        キャッシュを更新
+                    </button>
+                    <div id="cache-refresh-status" style="margin-top: 12px; font-size: 0.9em;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 管理者専用機能（管理者のみ表示） -->
+        <section id="admin-only-section" class="teacher-controls" style="background-color: var(--surface-color); padding: 20px; margin-bottom: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: none;">
+            <h3 style="color: #004294; margin: 0 0 15px 0; font-size: 1.5em; display: flex; align-items: center;">
+                管理者専用機能
+            </h3>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+                <!-- システム設定 -->
+                <div style="background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border: 2px solid #004294; border-radius: 10px; padding: 20px;">
+                    <h4 style="margin: 0 0 15px 0; color: #004294; font-size: 1.1em;">
+                        システム設定
+                    </h4>
+                    <p style="font-size: 0.9em; color: var(--text-secondary-color); margin-bottom: 15px; line-height: 1.5;">
+                        学校名や履修期間の設定を行います。<br>
+                        • 学校名設定<br>
+                        • 本登録許可/仮登録の有効/無効<br>
+                        • 各学年の最低単位数設定
+                    </p>
+                    <button id="settings-button" onclick="SettingsManager.showSettingsModal()" style="width: 100%; background-color: #004294; color: white; font-size: 14px; padding: 10px 12px;">
+                        設定を管理
+                    </button>
+                </div>
+
+                <!-- 科目データ管理 -->
+                <div style="background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border: 2px solid #004294; border-radius: 10px; padding: 20px;">
+                    <h4 style="margin: 0 0 15px 0; color: #004294; font-size: 1.1em;">
+                        科目データ管理
+                    </h4>
+                    <p style="font-size: 0.9em; color: var(--text-secondary-color); margin-bottom: 15px; line-height: 1.5;">
+                        科目マスターデータの追加・編集・削除を行います。<br>
+                        • 登録データシートの列も連動して更新されます
+                    </p>
+                    <button onclick="CourseManager.openModal()"
+                            style="width: 100%; background-color: #004294; color: white; font-size: 14px; padding: 10px 12px; border: none; border-radius: 5px; cursor: pointer;">
+                        科目を管理
+                    </button>
+                </div>
+
+                <!-- 教職員データ管理 -->
+                <div style="background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border: 2px solid #004294; border-radius: 10px; padding: 20px;">
+                    <h4 style="margin: 0 0 15px 0; color: #004294; font-size: 1.1em;">
+                        教職員データ管理
+                    </h4>
+                    <p style="font-size: 0.9em; color: var(--text-secondary-color); margin-bottom: 15px; line-height: 1.5;">
+                        教職員データの追加・編集・削除を行います。
+                    </p>
+                    <button onclick="StaffManager.openModal()"
+                            style="width: 100%; background-color: #004294; color: white; font-size: 14px; padding: 10px 12px; border: none; border-radius: 5px; cursor: pointer;">
+                        教職員を管理
+                    </button>
+                </div>
+
+                <!-- 生徒データ管理 -->
+                <div style="background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border: 2px solid #004294; border-radius: 10px; padding: 20px;">
+                    <h4 style="margin: 0 0 15px 0; color: #004294; font-size: 1.1em;">
+                        生徒データ管理
+                    </h4>
+                    <p style="font-size: 0.9em; color: var(--text-secondary-color); margin-bottom: 15px; line-height: 1.5;">
+                        生徒データの追加・編集・削除を行います。
+                    </p>
+                    <button onclick="StudentManager.openModal()"
+                            style="width: 100%; background-color: #004294; color: white; font-size: 14px; padding: 10px 12px; border: none; border-radius: 5px; cursor: pointer;">
+                        生徒を管理
+                    </button>
+                </div>
+
+                <!-- 履修データ一括入力 -->
+                <div style="background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border: 2px solid #004294; border-radius: 10px; padding: 20px;">
+                    <h4 style="margin: 0 0 15px 0; color: #004294; font-size: 1.1em;">
+                        履修データ一括入力
+                    </h4>
+                    <p style="font-size: 0.9em; color: var(--text-secondary-color); margin-bottom: 15px; line-height: 1.5;">
+                        テスト結果のExcelファイルから履修済みデータを一括取り込みします。<br>
+                        IRデータのテストデータ統合版のExcelファイルをそのまま選択してください。
+                    </p>
+                    <input type="file" id="excel-import-file" accept=".xlsx,.xls" style="display: none;" onchange="ExcelImporter.handleFileSelect(event)">
+                    <button id="excel-import-select-btn" onclick="document.getElementById('excel-import-file').click()"
+                            style="width: 100%; background-color: #004294; color: white; font-size: 14px; padding: 10px 12px; border: none; border-radius: 5px; cursor: pointer;">
+                        Excelファイルを選択
+                    </button>
+                    <div id="excel-import-status" style="margin-top: 12px; font-size: 0.9em;"></div>
+                </div>
+
+                <!-- 学籍移動 生徒削除 -->
+                <div style="background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border: 2px solid #004294; border-radius: 10px; padding: 20px;">
+                    <h4 style="margin: 0 0 15px 0; color: #004294; font-size: 1.1em;">
+                        学籍移動 生徒削除
+                    </h4>
+                    <p style="font-size: 0.9em; color: var(--text-secondary-color); margin-bottom: 15px; line-height: 1.5;">
+                        Excelファイルの「学籍移動」列から転科・転学・退学・卒業の生徒を検出し、登録データから削除します。テストRデータのテストデータ統合版のExcelファイルでも使用可能です。
+                    </p>
+                    <input type="file" id="student-delete-file" accept=".xlsx,.xls" style="display: none;"
+                           onchange="StudentDeleter.handleFileSelect(event)">
+                    <button id="student-delete-select-btn" onclick="document.getElementById('student-delete-file').click()"
+                            style="width: 100%; background-color: #004294; color: white; font-size: 14px; padding: 10px 12px; border: none; border-radius: 5px; cursor: pointer;">
+                        Excelファイルを選択
+                    </button>
+                    <div id="student-delete-status" style="margin-top: 12px; font-size: 0.9em;"></div>
+                </div>
+
+                <!-- 生徒別科目表示設定 -->
+                <div style="background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border: 2px solid #004294; border-radius: 10px; padding: 20px;">
+                    <h4 style="margin: 0 0 15px 0; color: #004294; font-size: 1.1em;">
+                        生徒別科目表示設定
+                    </h4>
+                    <p style="font-size: 0.9em; color: var(--text-secondary-color); margin-bottom: 15px; line-height: 1.5;">
+                        科目ごとの抽選・表示・非表示対象の学籍番号を管理します。
+                    </p>
+                    <button onclick="StudentIdsManager.openModal()"
+                            style="width: 100%; background-color: #004294; color: white; font-size: 14px; padding: 10px 12px; border: none; border-radius: 5px; cursor: pointer;">
+                        学籍番号を管理
+                    </button>
+                </div>
+
+                <!-- 新入生データ取り込み -->
+                <div style="background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border: 2px solid #004294; border-radius: 10px; padding: 20px;">
+                    <h4 style="margin: 0 0 15px 0; color: #004294; font-size: 1.1em;">
+                        新入生データ取り込み
+                    </h4>
+                    <p style="font-size: 0.9em; color: var(--text-secondary-color); margin-bottom: 15px; line-height: 1.5;">
+                        Excelファイルから新入生を登録データに追加します。<br>
+                        • 必須列: 学籍番号、名前<br>
+                        • 任意列: 組、番号（学年は0または1のみ）
+                    </p>
+                    <input type="file" id="new-student-import-file" accept=".xlsx,.xls" style="display: none;"
+                           onchange="NewStudentImporter.handleFileSelect(event)">
+                    <button id="new-student-import-btn" onclick="document.getElementById('new-student-import-file').click()"
+                            style="width: 100%; background-color: #004294; color: white; font-size: 14px; padding: 10px 12px; border: none; border-radius: 5px; cursor: pointer;">
+                        Excelファイルを選択
+                    </button>
+                    <div id="new-student-import-status" style="margin-top: 12px; font-size: 0.9em;"></div>
+                </div>
+
+                <!-- 本登録データ出力 -->
+                <div style="background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border: 2px solid #004294; border-radius: 10px; padding: 20px;">
+                    <h4 id="card-title-registration-export" style="margin: 0 0 15px 0; color: #004294; font-size: 1.1em;">
+                        本登録データ出力
+                    </h4>
+                    <p style="font-size: 0.9em; color: var(--text-secondary-color); margin-bottom: 15px; line-height: 1.5;">
+                        本登録済み生徒の履修データをExcelファイルでダウンロードします。
+                    </p>
+                    <div style="margin-bottom: 10px; font-size: 0.9em;">
+                        <label style="display: flex; align-items: center; gap: 6px;">
+                            <select id="export-format-select" style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 14px;">
+                                <option value="table">表形式</option>
+                                <option value="vertical">縦展開</option>
+                            </select>
+                        </label>
+                    </div>
+                    <button id="export-registration-button" onclick="exportRegistrationData()"
+                            style="width: 100%; background-color: #004294; color: white; font-size: 14px; padding: 10px 12px; border: none; border-radius: 5px; cursor: pointer;">
+                        Excelダウンロード
+                    </button>
+                    <div id="export-status" style="margin-top: 12px; font-size: 0.9em;"></div>
+                </div>
+
+                <!-- SM取り込み形式出力 -->
+                <div style="background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border: 2px solid #004294; border-radius: 10px; padding: 20px; position: relative;">
+                    <h4 id="card-title-sm-export" style="margin: 0 0 15px 0; color: #004294; font-size: 1.1em; position: relative;">
+                        SM取り込み形式出力
+                        <button id="sm-settings-edit-btn" onclick="SMExporter.openSettingsModal()"
+                                style="position: absolute; top: -2px; right: 0; background: white; border: 1px solid #004294; color: #004294; font-size: 0.8em; padding: 2px 10px; border-radius: 4px; cursor: pointer;">
+                            編集
+                        </button>
+                    </h4>
+                    <p style="font-size: 0.9em; color: var(--text-secondary-color); margin-bottom: 15px; line-height: 1.5;">
+                        クラスグループ別に科目列を分割したExcelを出力します。
+                    </p>
+                    <button id="sm-export-button" onclick="SMExporter.exportData()"
+                            style="width: 100%; background-color: #004294; color: white; font-size: 14px; padding: 10px 12px; border: none; border-radius: 5px; cursor: pointer;">
+                        Excelダウンロード
+                    </button>
+                    <div id="sm-export-status" style="margin-top: 12px; font-size: 0.9em;"></div>
+                </div>
+
+                <!-- 教科書発注データ出力 -->
+                <div style="background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border: 2px solid #004294; border-radius: 10px; padding: 20px;">
+                    <h4 id="card-title-textbook-export" style="margin: 0 0 15px 0; color: #004294; font-size: 1.1em; position: relative;">
+                        教科書発注データ出力
+                        <button id="textbook-settings-edit-btn" onclick="TextbookExporter.openSettingsModal()"
+                                style="position: absolute; top: -2px; right: 0; background: white; border: 1px solid #004294; color: #004294; font-size: 0.8em; padding: 2px 10px; border-radius: 4px; cursor: pointer;">
+                            編集
+                        </button>
+                    </h4>
+                    <p style="font-size: 0.9em; color: var(--text-secondary-color); margin-bottom: 15px; line-height: 1.5;">
+                        生徒×科目×教科書コードの掛け合わせデータを出力します。<br>
+                        • 個人情報Excelを取り込んでから出力してください
+                    </p>
+                    <!-- STEP 1: 個人情報Excel取り込み -->
+                    <div style="margin-bottom: 14px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background-color: #004294; color: white; border-radius: 50%; font-size: 0.8em; font-weight: bold; flex-shrink: 0;">1</span>
+                            <span style="font-weight: bold; color: #004294; font-size: 0.95em;">個人情報Excelを取り込む</span>
+                        </div>
+                        <input type="file" id="textbook-personal-file" accept=".xlsx,.xls"
+                               style="display: none;"
+                               onchange="TextbookExporter.handlePersonalFileSelect(event)">
+                        <button id="textbook-personal-button" onclick="document.getElementById('textbook-personal-file').click()"
+                                style="width: 100%; background-color: #6c757d; color: white; font-size: 13px; padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer;">
+                            ファイルを選択
+                        </button>
+                        <div id="textbook-personal-status" style="margin-top: 6px; font-size: 0.85em;"></div>
+                    </div>
+                    <!-- 区切り線 -->
+                    <div style="text-align: center; margin: 10px 0; color: #adb5bd; font-size: 1.2em;">▼</div>
+                    <!-- STEP 2: ダウンロード -->
+                    <div id="textbook-step2-container" style="opacity: 0.4; transition: opacity 0.3s;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background-color: #004294; color: white; border-radius: 50%; font-size: 0.8em; font-weight: bold; flex-shrink: 0;">2</span>
+                            <span style="font-weight: bold; color: #004294; font-size: 0.95em;">教科書発注データをダウンロード</span>
+                        </div>
+                        <button id="textbook-export-button" onclick="TextbookExporter.exportData()" disabled
+                                style="width: 100%; background-color: #004294; color: white; font-size: 14px; padding: 10px 12px; border: none; border-radius: 5px; cursor: pointer;">
+                            ダウンロード
+                        </button>
+                        <div id="textbook-export-status" style="margin-top: 8px; font-size: 0.9em;"></div>
+                    </div>
+                </div>
+
+                <!-- レポートマスタ出力 -->
+                <div style="background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border: 2px solid #004294; border-radius: 10px; padding: 20px;">
+                    <h4 id="card-title-report-export" style="margin: 0 0 15px 0; color: #004294; font-size: 1.1em; position: relative;">
+                        レポートマスタ出力
+                        <button id="report-settings-edit-btn" onclick="ReportExporter.openSettingsModal()"
+                                style="position: absolute; top: -2px; right: 0; background: white; border: 1px solid #004294; color: #004294; font-size: 0.8em; padding: 2px 10px; border-radius: 4px; cursor: pointer;">
+                            編集
+                        </button>
+                    </h4>
+                    <p style="font-size: 0.9em; color: var(--text-secondary-color); margin-bottom: 15px; line-height: 1.5;">
+                        生徒×科目×科目コードの掛け合わせデータを出力します。
+                    </p>
+                    <button id="report-export-button" onclick="ReportExporter.exportData()"
+                            style="width: 100%; background-color: #004294; color: white; font-size: 14px; padding: 10px 12px; border: none; border-radius: 5px; cursor: pointer;">
+                        ダウンロード
+                    </button>
+                    <div id="report-export-status" style="margin-top: 8px; font-size: 0.9em;"></div>
+                </div>
+
+                <!-- 登録データ管理 -->
+                <div style="background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border: 2px solid #004294; border-radius: 10px; padding: 20px;">
+                    <h4 style="margin: 0 0 15px 0; color: #004294; font-size: 1.1em;">
+                        登録データ管理
+                    </h4>
+                    <p style="font-size: 0.9em; color: var(--text-secondary-color); margin-bottom: 15px; line-height: 1.5;">
+                        生徒の履修マーク（●/○）を直接編集します。<br>
+                        • リストボックスでマークを自由に変更可能
+                    </p>
+                    <button onclick="showAdminManageScreen()"
+                            style="width: 100%; background-color: #004294; color: white; font-size: 14px; padding: 10px 12px; border: none; border-radius: 5px; cursor: pointer;">
+                        登録データを管理
+                    </button>
+                </div>
+
+                <!-- 次年度引き継ぎ -->
+                <div style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); border: 2px solid #e65100; border-radius: 10px; padding: 20px;">
+                    <h4 style="margin: 0 0 15px 0; color: #e65100; font-size: 1.1em;">
+                        次年度引き継ぎ
+                    </h4>
+                    <p style="font-size: 0.9em; color: var(--text-secondary-color); margin-bottom: 15px; line-height: 1.5;">
+                        年度末の引き継ぎ処理を実行します。<br>
+                        • リセットする項目を選択できます
+                    </p>
+                    <button onclick="YearTransition.showModal()"
+                            style="width: 100%; background-color: #e65100; color: white; font-size: 14px; padding: 10px 12px; border: none; border-radius: 5px; cursor: pointer;">
+                        次年度引き継ぎを実行
+                    </button>
+                </div>
+
+
+            </div>
+        </section>
+    </div>
+
+    <!-- 次年度引き継ぎモーダル -->
+    <div id="year-transition-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 80%; max-width: 600px;">
+            <h2 style="border-bottom: 2px solid #e65100; padding-bottom: 10px; color: #e65100; margin-top: 0;">
+                次年度引き継ぎ
+            </h2>
+            <p style="color: var(--text-secondary-color); margin-bottom: 15px;">
+                実行する項目を選択してください。この操作は元に戻せません。
+            </p>
+
+            <div style="margin: 20px 0; display: flex; flex-direction: column; gap: 12px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.95em; cursor: pointer;">
+                    <input type="checkbox" id="yt-upgrade-grade" style="width: 18px; height: 18px;">
+                    学年を繰り上げる（組・番号はクリア）
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.95em; cursor: pointer;">
+                    <input type="checkbox" id="yt-reset-timestamp" style="width: 18px; height: 18px;">
+                    タイムスタンプをリセット
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.95em; cursor: pointer;">
+                    <input type="checkbox" id="yt-reset-status" style="width: 18px; height: 18px;">
+                    ステータスをリセット（利用停止は維持）
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.95em; cursor: pointer;">
+                    <input type="checkbox" id="yt-reset-next-grade" style="width: 18px; height: 18px;">
+                    来年度学年をリセット
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.95em; cursor: pointer;">
+                    <input type="checkbox" id="yt-reset-lottery" style="width: 18px; height: 18px;">
+                    抽選科目の学籍番号をリセット
+                </label>
+            </div>
+
+            <div id="year-transition-status" style="margin: 10px 0; font-size: 0.9em;"></div>
+
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                <button onclick="YearTransition.closeModal()"
+                        style="background-color: #6c757d; color: white; font-size: 14px; padding: 10px 24px; border: none; border-radius: 5px; cursor: pointer;">
+                    キャンセル
+                </button>
+                <button id="yt-execute-button" onclick="YearTransition.execute()"
+                        style="background-color: #e65100; color: white; font-size: 14px; padding: 10px 24px; border: none; border-radius: 5px; cursor: pointer;">
+                    実行
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 本登録画面 -->
+    <div id="final-registration-screen" class="container" style="display: none;">
+        <header class="header-area">
+            <div id="school-name-final" style="text-align: left; font-size: 0.8em; color: var(--text-secondary-color); margin-bottom: 0;"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0; border-bottom: 2px solid var(--primary-color); padding-bottom: 5px;">
+                <h1 style="margin: 0; color: var(--primary-color);">本登録</h1>
+            </div>
+        </header>
+
+        <div id="final-registration-content">
+            <!-- 本登録画面のコンテンツがここに表示されます -->
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button id="final-register-btn" class="save-button-in-summary" style="display: none;">
+                本登録を実行
+            </button>
+        </div>
+    </div>
+
+    <!-- 差し戻し確認モーダル -->
+    <div id="reject-confirmation-modal" class="submit-confirmation-modal">
+        <div class="submit-confirmation-content">
+            <h3>差し戻しの確認</h3>
+            <div id="reject-confirmation-info"></div>
+            <p>この生徒の履修登録を差し戻しますか？<br>差し戻し後、生徒は再度科目を変更できるようになります。</p>
+            <div class="submit-confirmation-buttons">
+                <button id="reject-cancel-btn" class="save-button-in-summary" style="background-color: #6c757d;">キャンセル</button>
+                <button id="reject-confirm-btn" class="save-button-in-summary" style="background-color: #dc3545;">差し戻す</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 教務用仮登録確認モーダル -->
+    <div id="admin-provisional-submit-modal" class="submit-confirmation-modal">
+        <div class="submit-confirmation-content">
+            <h3>仮登録の確認</h3>
+            <div id="admin-provisional-submit-info"></div>
+            <p>この生徒の履修登録を仮登録しますか？<br>仮登録後は編集ロックがかかります。</p>
+            <div class="submit-confirmation-buttons">
+                <button id="admin-provisional-submit-cancel-btn" class="save-button-in-summary" style="background-color: #6c757d;">キャンセル</button>
+                <button id="admin-provisional-submit-confirm-btn" class="save-button-in-summary" style="background-color: #004294;">仮登録</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 本登録確認モーダル -->
+    <div id="final-register-confirmation-modal" class="submit-confirmation-modal">
+        <div class="submit-confirmation-content">
+            <h3>本登録の確認</h3>
+            <div id="final-register-confirmation-info"></div>
+            <p>本登録を実行してよろしいですか？<br>実行後は変更できません。</p>
+            <div class="submit-confirmation-buttons">
+                <button id="final-register-cancel-btn" class="save-button-in-summary" style="background-color: #6c757d;">キャンセル</button>
+                <button id="final-register-confirm-btn" class="save-button-in-summary" style="background-color: #28a745;">本登録を実行</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 本登録許可確認モーダル -->
+    <div id="final-approval-confirmation-modal" class="submit-confirmation-modal">
+        <div class="submit-confirmation-content">
+            <h3>本登録許可の確認</h3>
+            <div id="final-approval-confirmation-info"></div>
+            <p>この生徒に本登録許可を設定しますか？<br>許可後、QRコードが生成され生徒が本登録できるようになります。</p>
+            <div class="submit-confirmation-buttons">
+                <button id="final-approval-cancel-btn" class="save-button-in-summary" style="background-color: #6c757d;">キャンセル</button>
+                <button id="final-approval-confirm-btn" class="save-button-in-summary" style="background-color: #28a745;">許可する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 本登録許可取消確認モーダル -->
+    <div id="cancel-final-approval-modal" class="submit-confirmation-modal">
+        <div class="submit-confirmation-content">
+            <h3>本登録許可取消の確認</h3>
+            <div id="cancel-final-approval-info"></div>
+            <p>この生徒の本登録許可を取り消しますか？<br>取り消すとQRコードが無効になり、生徒は本登録できなくなります。</p>
+            <div class="submit-confirmation-buttons">
+                <button id="cancel-final-approval-cancel-btn" class="save-button-in-summary" style="background-color: #6c757d;">キャンセル</button>
+                <button id="cancel-final-approval-confirm-btn" class="save-button-in-summary" style="background-color: #dc3545;">取消する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Excel取込確認モーダル -->
+    <div id="excel-import-modal" class="submit-confirmation-modal">
+        <div class="submit-confirmation-content" style="max-width: 500px; text-align: left;">
+            <h3 style="text-align: center;">履修データ一括入力の確認</h3>
+            <div id="excel-import-summary" style="margin-bottom: 15px;"></div>
+            <div id="excel-import-unmatched" style="margin-bottom: 15px;"></div>
+            <div class="submit-confirmation-buttons">
+                <button id="excel-import-cancel-btn" class="save-button-in-summary" style="background-color: #6c757d;" onclick="ExcelImporter.cancelImport()">キャンセル</button>
+                <button id="excel-import-confirm-btn" class="save-button-in-summary" style="background-color: #10b981;" onclick="ExcelImporter.executeImport()">取込実行</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新入生データ取り込み確認モーダル -->
+    <div id="new-student-import-modal" class="submit-confirmation-modal">
+        <div class="submit-confirmation-content" style="max-width: 700px; text-align: left;">
+            <h3 style="text-align: center;">新入生データ取り込みの確認</h3>
+            <div id="new-student-import-summary" style="margin-bottom: 15px;"></div>
+            <div class="submit-confirmation-buttons">
+                <button id="new-student-import-cancel-btn" class="save-button-in-summary" style="background-color: #6c757d;" onclick="NewStudentImporter.cancelImport()">キャンセル</button>
+                <button id="new-student-import-confirm-btn" class="save-button-in-summary" style="background-color: #10b981;" onclick="NewStudentImporter.executeImport()">取込実行</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新クラス取り込み未マッチ確認モーダル -->
+    <div id="new-class-unmatched-modal" class="submit-confirmation-modal">
+        <div class="submit-confirmation-content" style="max-width: 500px; text-align: left;">
+            <h3 style="text-align: center;">新クラス取り込み確認</h3>
+            <div id="new-class-unmatched-summary" style="margin-bottom: 15px;"></div>
+            <div class="submit-confirmation-buttons">
+                <button class="save-button-in-summary" style="background-color: #6c757d;" onclick="NewClassImporter._cancelUnmatched()">キャンセル</button>
+                <button class="save-button-in-summary" style="background-color: #007bff;" onclick="NewClassImporter._confirmUnmatched()">続行</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 学籍移動 生徒削除確認モーダル -->
+    <div id="student-delete-modal" class="submit-confirmation-modal">
+        <div class="submit-confirmation-content" style="max-width: 500px; text-align: left;">
+            <h3 style="text-align: center;">学籍移動 生徒削除の確認</h3>
+            <div id="student-delete-summary" style="margin-bottom: 15px;"></div>
+            <div class="submit-confirmation-buttons">
+                <button class="save-button-in-summary" style="background-color: #6c757d;" onclick="StudentDeleter.cancelDelete()">キャンセル</button>
+                <button id="student-delete-confirm-btn" class="save-button-in-summary" style="background-color: #dc2626;" onclick="StudentDeleter.executeDelete()">削除実行</button>
+            </div>
+        </div>
+    </div>
+

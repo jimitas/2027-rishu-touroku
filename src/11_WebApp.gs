@@ -299,26 +299,19 @@ const WebApp = {
  */
 function doGet(e) {
   try {
-    const token = e.parameter.token || '';
-    let html = HtmlService.createHtmlOutputFromFile('index').getContent();
-    html = html.replace('%%TOKEN%%', token.replace(/[^a-zA-Z0-9\-_]/g, ''));
+    const token = (e.parameter.token || '').replace(/[^a-zA-Z0-9\-_]/g, '');
+    const template = HtmlService.createTemplateFromFile('index');
+    template.token = token;
 
-    return HtmlService.createHtmlOutput(html)
+    const schoolName = SettingsService.getSettings()[CONFIG.SETTING_KEYS.SCHOOL_NAME] || CONFIG.DEFAULTS.SCHOOL_NAME;
+
+    return template.evaluate()
       .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-      .setTitle('履修登録システム - ' + (SettingsService.getSettings()[CONFIG.SETTING_KEYS.SCHOOL_NAME] || CONFIG.DEFAULTS.SCHOOL_NAME))
+      .setTitle('履修登録システム - ' + schoolName)
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 
   } catch (error) {
-    return HtmlService.createHtmlOutput(`
-      <html>
-        <head><title>システムエラー</title></head>
-        <body style="text-align:center;padding:40px;font-family:sans-serif;">
-          <h2 style="color:#dc3545;">システムエラー</h2>
-          <p>履修登録システムの起動に失敗しました</p>
-          <button onclick="location.reload()">再読み込み</button>
-        </body>
-      </html>
-    `);
+    return HtmlService.createHtmlOutput('<html><body style="text-align:center;padding:40px;font-family:sans-serif;"><h2 style="color:#dc3545;">システムエラー</h2><p>履修登録システムの起動に失敗しました</p><button onclick="location.reload()">再読み込み</button></body></html>');
   }
 }
 
